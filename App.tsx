@@ -403,16 +403,26 @@ const App: React.FC = () => {
           {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN) && (
             <>
               <div className="w-[1px] h-10 bg-white/10"></div>
-              <button 
-                onPointerDown={quitToHome}
-                className="pointer-events-auto bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors active:scale-90"
-                title="Restart Game"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                  <path d="M3 3v5h5"/>
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onPointerDown={quitToHome}
+                  className="pointer-events-auto bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl transition-all active:scale-90 flex items-center gap-2 shadow-lg shadow-red-900/20"
+                  title="Stop Game"
+                >
+                  <div className="w-2.5 h-2.5 bg-white rounded-sm"></div>
+                  <span className="text-white font-black text-xs uppercase tracking-widest">STOP</span>
+                </button>
+                <button 
+                  onPointerDown={quitToHome}
+                  className="pointer-events-auto bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors active:scale-90"
+                  title="Restart Game"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                </button>
+              </div>
             </>
           )}
         </div>
