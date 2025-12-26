@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppleData } from '../types';
 
@@ -7,65 +8,65 @@ interface AppleProps {
 }
 
 const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
-  // depthScale helps adjust things based on Z-position
-  const depthScale = 1 + (data.z / 500);
-  
   return (
     <div
-      onClick={() => onClick(data.id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(data.id);
+      }}
       className="absolute cursor-pointer select-none touch-manipulation group"
       style={{
         left: `${data.x}%`,
         top: `${data.y}%`,
         width: `${data.size}px`,
         height: `${data.size}px`,
-        zIndex: Math.floor(data.z + 500),
+        zIndex: Math.floor(data.z + 1000),
         transformStyle: 'preserve-3d',
         transform: `translate3d(-50%, -50%, ${data.z}px) rotate(${data.rotation}deg)`,
-        animation: `apple-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, float 6s ease-in-out infinite`,
+        animation: `apple-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, float 5s ease-in-out infinite`,
         animationDelay: `0s, ${data.delay}s`,
       }}
     >
-      <div className="relative w-full h-full transition-all duration-500 group-hover:scale-125 group-active:scale-95 group-active:rotate-[15deg]" style={{ transformStyle: 'preserve-3d' }}>
+      <div className="relative w-full h-full transition-all duration-300 group-hover:scale-110 active:scale-90" style={{ transformStyle: 'preserve-3d' }}>
         
-        {/* Dynamic Shadow Cast into 3D Space */}
+        {/* Shadow cast on "floor/depth" */}
         <div 
-          className="absolute inset-0 bg-black/30 rounded-full blur-xl scale-110"
-          style={{ transform: 'translate3d(15%, 15%, -40px) scale(0.9)' }}
+          className="absolute inset-0 bg-black/40 rounded-full blur-xl opacity-60"
+          style={{ transform: 'translate3d(10%, 15%, -20px) scale(0.9)' }}
         ></div>
 
-        {/* 3D Apple Body - Complex Spherical Gradient */}
-        <div className="absolute inset-0 rounded-full overflow-hidden shadow-[inset_-10px_-10px_30px_rgba(0,0,0,0.8),inset_5px_5px_15px_rgba(255,255,255,0.2)] bg-gradient-to-br from-red-400 via-red-600 to-red-950">
+        {/* Realistic 3D Apple Body */}
+        <div className="absolute inset-0 rounded-full overflow-hidden shadow-[inset_-12px_-12px_30px_rgba(0,0,0,0.9),inset_8px_8px_20px_rgba(255,255,255,0.3)] bg-gradient-to-br from-[#ff4d4d] via-[#d60000] to-[#600000]">
           
-          {/* Main Surface Highlight */}
-          <div className="absolute top-[10%] left-[15%] w-[40%] h-[30%] bg-white/25 rounded-full blur-md -rotate-[30deg]"></div>
+          {/* Main highlight - "The Shine" */}
+          <div className="absolute top-[8%] left-[18%] w-[35%] h-[25%] bg-gradient-to-b from-white/40 to-transparent rounded-full blur-sm -rotate-[25deg]"></div>
           
-          {/* Secondary Rim Light */}
-          <div className="absolute bottom-[5%] right-[5%] w-[30%] h-[30%] bg-red-400/20 rounded-full blur-lg"></div>
+          {/* Subsurface scattering effect (orange/yellow tint on edges) */}
+          <div className="absolute bottom-[10%] right-[15%] w-[40%] h-[40%] bg-orange-500/10 rounded-full blur-2xl"></div>
 
-          {/* Texture Overlay (pitting/pores) */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '4px 4px' }}></div>
+          {/* Skin Pores / Texture */}
+          <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '3px 3px' }}></div>
         </div>
 
-        {/* Stem - Offset in 3D */}
+        {/* Stem - Natural wood look */}
         <div 
-          className="absolute -top-[15%] left-1/2 -translate-x-1/2 w-[12%] h-[40%] bg-gradient-to-b from-amber-700 to-amber-950 rounded-full"
-          style={{ transform: 'translateZ(15px) rotateX(-15deg)' }}
+          className="absolute -top-[12%] left-1/2 -translate-x-1/2 w-[10%] h-[35%] bg-gradient-to-b from-[#4d2600] to-[#261300] rounded-full shadow-lg"
+          style={{ transform: 'translateZ(10px) rotateX(-10deg)' }}
         >
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-black/20 rounded-full"></div>
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-black/30 rounded-full"></div>
         </div>
 
-        {/* Leaf - High Depth Offset */}
+        {/* Leaf - Lush Green with depth */}
         <div 
-          className="absolute -top-[20%] left-[52%] w-[55%] h-[35%] transition-transform duration-700 group-hover:rotate-[45deg]"
+          className="absolute -top-[22%] left-[55%] w-[60%] h-[35%] origin-left"
           style={{ 
-            transform: 'translateZ(30px) rotate(25deg)',
+            transform: 'translateZ(20px) rotate(35deg) rotateY(10deg)',
             transformStyle: 'preserve-3d'
           }}
         >
-          <div className="w-full h-full bg-gradient-to-tr from-green-900 via-green-600 to-emerald-400 rounded-full shadow-lg border-l border-green-300/20">
-            {/* Vein Line */}
-            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-green-900/40 -translate-y-1/2"></div>
+          <div className="w-full h-full bg-gradient-to-br from-[#4ade80] via-[#166534] to-[#064e3b] rounded-full shadow-md border-l border-white/10">
+            {/* Center leaf vein */}
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-black/20 -translate-y-1/2"></div>
           </div>
         </div>
       </div>
