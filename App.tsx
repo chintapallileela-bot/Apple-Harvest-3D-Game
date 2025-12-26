@@ -456,10 +456,10 @@ const App: React.FC = () => {
 
       {/* Countdown Overlay */}
       {status === GameStatus.COUNTDOWN && (
-        <div className="fixed inset-0 z-[2500] flex items-center justify-center pointer-events-none bg-black/20">
+        <div className="fixed inset-0 z-[2500] flex items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm">
           <div 
             key={countdown}
-            className="text-[20rem] md:text-[28rem] font-black text-white italic drop-shadow-[0_20px_50px_rgba(220,38,38,0.9)] animate-[apple-pop_0.5s_ease-out_forwards]"
+            className="text-[18rem] md:text-[25rem] font-black text-white italic drop-shadow-[0_20px_60px_rgba(220,38,38,0.8)] animate-[countdown-pop_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]"
           >
             {countdown}
           </div>
