@@ -16,8 +16,10 @@ const App: React.FC = () => {
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  
   const timerRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Procedural Sound Generator
   const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'spawn' | 'chime', currentScore?: number) => {
@@ -32,41 +34,34 @@ const App: React.FC = () => {
 
       switch (type) {
         case 'pop': {
-          // A crisp, crunchy pluck sound (less "bloopey", more "apple-crunch")
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'triangle';
-          // Start high for a "snap" feel
-          osc.frequency.setValueAtTime(1200 + Math.random() * 400, now);
-          osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-          
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-          
+          osc.frequency.setValueAtTime(1000 + Math.random() * 500, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.1);
 
-          // Add a tiny noise burst for "crunch"
-          const bufferSize = ctx.sampleRate * 0.02;
-          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-          const data = buffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-          const noise = ctx.createBufferSource();
-          noise.buffer = buffer;
+          // Wood-block/crunch component
+          const noiseOsc = ctx.createOscillator();
           const noiseGain = ctx.createGain();
-          noiseGain.gain.setValueAtTime(0.1, now);
-          noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-          noise.connect(noiseGain);
+          noiseOsc.type = 'square';
+          noiseOsc.frequency.setValueAtTime(150, now);
+          noiseGain.gain.setValueAtTime(0.05, now);
+          noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+          noiseOsc.connect(noiseGain);
           noiseGain.connect(ctx.destination);
-          noise.start(now);
+          noiseOsc.start(now);
+          noiseOsc.stop(now + 0.03);
           break;
         }
         case 'chime': {
           const progress = Math.min((currentScore || 0) / WIN_TARGET, 1);
-          const baseFreq = 880 + (progress * 880); // High-pitched A5 to A6
-          
+          const baseFreq = 880 + (progress * 880);
           [1, 2.01, 3.14].forEach((mult, i) => {
             const o = ctx.createOscillator();
             const g = ctx.createGain();
@@ -74,23 +69,20 @@ const App: React.FC = () => {
             o.frequency.setValueAtTime(baseFreq * mult, now);
             o.connect(g);
             g.connect(ctx.destination);
-            
-            const maxVol = (0.03 + (progress * 0.07)) / (i + 1);
+            const maxVol = (0.02 + (progress * 0.05)) / (i + 1);
             g.gain.setValueAtTime(maxVol, now);
-            g.gain.exponentialRampToValueAtTime(0.001, now + 0.3 + (i * 0.1));
-            
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
             o.start(now);
             o.stop(now + 0.5);
           });
           break;
         }
         case 'spawn': {
-          // Delicate high-pitched twinkle
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(2000 + Math.random() * 1000, now);
-          gain.gain.setValueAtTime(0.02, now);
+          osc.frequency.setValueAtTime(1800 + Math.random() * 500, now);
+          gain.gain.setValueAtTime(0.01, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
           osc.connect(gain);
           gain.connect(ctx.destination);
@@ -103,13 +95,13 @@ const App: React.FC = () => {
           const gain = ctx.createGain();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(440, now);
-          osc.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
           gain.gain.setValueAtTime(0.1, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(now);
-          osc.stop(now + 0.4);
+          osc.stop(now + 0.5);
           break;
         }
         case 'win':
@@ -118,24 +110,24 @@ const App: React.FC = () => {
             const g = ctx.createGain();
             o.connect(g); g.connect(ctx.destination);
             o.frequency.setValueAtTime(freq, now + i * 0.1);
-            g.gain.setValueAtTime(0.15, now + i * 0.1);
-            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.5);
+            g.gain.setValueAtTime(0.1, now + i * 0.1);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.6);
             o.start(now + i * 0.1);
-            o.stop(now + i * 0.1 + 0.5);
+            o.stop(now + i * 0.1 + 0.6);
           });
           break;
         case 'lose': {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(300, now);
-          osc.frequency.linearRampToValueAtTime(100, now + 0.5);
-          gain.gain.setValueAtTime(0.15, now);
-          gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, now);
+          osc.frequency.linearRampToValueAtTime(50, now + 0.6);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.6);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(now);
-          osc.stop(now + 0.5);
+          osc.stop(now + 0.6);
           break;
         }
       }
@@ -150,6 +142,11 @@ const App: React.FC = () => {
       if (width < 768) setDeviceType('mobile');
       else if (width >= 768 && width <= 1024) setDeviceType('tablet');
       else setDeviceType('desktop');
+      
+      if (maskCanvasRef.current) {
+        maskCanvasRef.current.width = window.innerWidth;
+        maskCanvasRef.current.height = window.innerHeight;
+      }
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -157,57 +154,77 @@ const App: React.FC = () => {
   }, []);
 
   const createApple = useCallback((id: string, isSpawnSequence = false): AppleData => {
-    const width = window.innerWidth;
-    const isMobile = width < 768;
-    const isTablet = width >= 768 && width <= 1024;
-
     return {
       id,
-      x: Math.random() * 110 - 5,
-      y: Math.random() * 110 - 5,
-      z: Math.random() * 400 - 150,
-      size: isMobile ? (45 + Math.random() * 20) : (isTablet ? 55 + Math.random() * 25 : 75 + Math.random() * 30),
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      z: Math.random() * 200 - 100,
+      size: deviceType === 'mobile' ? (40 + Math.random() * 20) : (70 + Math.random() * 30),
       rotation: Math.random() * 360,
-      delay: isSpawnSequence ? 0 : Math.random() * 0.3,
-      color: Math.random() > 0.25 ? 'red' : 'green',
+      delay: isSpawnSequence ? 0 : Math.random() * 0.2,
+      color: Math.random() > 0.15 ? 'red' : 'green',
       variationSeed: Math.random(),
     };
-  }, []);
+  }, [deviceType]);
+
+  const updateMask = (xPercent: number, yPercent: number, size: number) => {
+    const canvas = maskCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const x = (xPercent / 100) * canvas.width;
+    const y = (yPercent / 100) * canvas.height;
+    const radius = size * 1.5; // Reveal slightly larger than apple
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    const gradient = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+    gradient.addColorStop(0, 'rgba(0,0,0,1)');
+    gradient.addColorStop(0.7, 'rgba(0,0,0,0.8)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  const clearMask = () => {
+    const canvas = maskCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black'; // The "frost" layer is technically black but masked
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  };
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = 6 + Math.floor(Math.random() * 5);
-    
+    const count = 8;
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 50 + Math.random() * 100;
-      const types: ('seed' | 'leaf' | 'dust')[] = ['seed', 'leaf', 'dust'];
-      const type = types[Math.floor(Math.random() * types.length)];
-      
+      const speed = 40 + Math.random() * 80;
       newParticles.push({
         id: `p-${Date.now()}-${i}`,
-        x: apple.x,
-        y: apple.y,
-        z: apple.z,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        color: type === 'leaf' ? '#22c55e' : (apple.color === 'red' ? '#ef4444' : '#84cc16'),
-        type,
-        size: type === 'dust' ? 4 : (type === 'seed' ? 6 : 12),
+        x: apple.x, y: apple.y, z: apple.z,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        color: apple.color === 'red' ? '#ef4444' : '#84cc16',
+        type: Math.random() > 0.5 ? 'leaf' : 'dust',
+        size: 5 + Math.random() * 10,
         rotation: Math.random() * 360,
       });
     }
-
     setParticles(prev => [...prev, ...newParticles]);
-
-    // Clean up particles after animation
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1000);
+    }, 800);
   }, []);
 
   const initGame = useCallback(() => {
     playSound('start');
+    clearMask();
     setStatus(GameStatus.SPAWNING);
     setScore(0);
     setTimeLeft(GAME_DURATION);
@@ -215,55 +232,38 @@ const App: React.FC = () => {
     setParticles([]);
 
     const initialBatch: AppleData[] = [];
-    const spawnDuration = 1.8; 
-    
     for (let i = 0; i < INITIAL_SCREEN_APPLES; i++) {
-      const apple = createApple(`apple-${i}-${Date.now()}`, true);
-      apple.delay = (i / INITIAL_SCREEN_APPLES) * spawnDuration;
-      initialBatch.push(apple);
+      initialBatch.push(createApple(`apple-${i}-${Date.now()}`, true));
     }
-    
     setApples(initialBatch);
 
-    setTimeout(() => {
-      setStatus(GameStatus.PLAYING);
-    }, (spawnDuration + 0.5) * 1000);
+    setTimeout(() => setStatus(GameStatus.PLAYING), 1500);
   }, [createApple]);
 
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
     
-    const targetApple = apples.find(a => a.id === id);
-    if (targetApple) {
-      triggerBurst(targetApple);
-    }
-
-    playSound('pop');
-    
-    setScore(prev => {
-      const newScore = prev + 1;
-      // Play ascending chime based on progress
-      playSound('chime', newScore);
-
-      if (newScore >= WIN_TARGET) {
-        setStatus(GameStatus.WON);
-        playSound('win');
-      }
-      return newScore;
-    });
-
     setApples(prev => {
-      const remaining = prev.filter(apple => apple.id !== id);
-      const spawnChance = Math.random();
-      const spawnCount = spawnChance > 0.8 ? 2 : (spawnChance > 0.4 ? 1 : 0);
-      
-      const newSpawn: AppleData[] = [];
-      for(let i = 0; i < spawnCount; i++) {
-        newSpawn.push(createApple(`apple-new-${Date.now()}-${i}`));
+      const target = prev.find(a => a.id === id);
+      if (target) {
+        triggerBurst(target);
+        updateMask(target.x, target.y, target.size);
+        playSound('pop');
+        setScore(s => {
+          const next = s + 1;
+          playSound('chime', next);
+          if (next >= WIN_TARGET) setStatus(GameStatus.WON);
+          return next;
+        });
+        
+        // Spawn replacements
+        const newOnes = [];
+        if (Math.random() > 0.4) newOnes.push(createApple(`apple-new-${Date.now()}`));
+        return [...prev.filter(a => a.id !== id), ...newOnes];
       }
-      return [...remaining, ...newSpawn];
+      return prev;
     });
-  }, [status, createApple, apples, triggerBurst]);
+  }, [status, createApple, triggerBurst]);
 
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
@@ -278,11 +278,9 @@ const App: React.FC = () => {
         });
       }, 1000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      clearInterval(timerRef.current);
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => clearInterval(timerRef.current);
   }, [status]);
 
   useEffect(() => {
@@ -291,173 +289,119 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? `The user successfully revealed the photo behind the apples in Apple Harvest. Congratulate them on their harvest skills and clear sight.`
-            : `The user only cleared ${score} apples and couldn't fully reveal the photo in Apple Harvest. Give a funny, rustic encouragement to try again.`;
-            
-          const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-          });
-          setFeedback(response.text ?? null);
+            ? "Celebrate the user for revealing the hidden orchard photo. Keep it warm and seasonal."
+            : `User failed to clear the orchard. They got ${score} apples. Encourage them to try again.`;
+          const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
+          setFeedback(res.text || null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "The secret is finally revealed!" : "Close, but the harvest continues. Try again!");
+          setFeedback(status === GameStatus.WON ? "The path is clear!" : "The harvest was cut short.");
         }
       };
       generateMessage();
     }
   }, [status, score]);
 
-  // Progressive Reveal logic: Photo visibility is updated every single pop
-  const bgRevealProgress = useMemo(() => {
-    if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) return 0;
-    if (status === GameStatus.WON) return 1;
-    return Math.min(score / WIN_TARGET, 1);
-  }, [score, status]);
-
-  const getBgConfig = () => {
-    // Completely hidden at the very start screen
-    if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) {
-      return { scale: 1.1, z: -150, blur: '40px', opacity: 0, brightness: 0 };
-    }
-    
-    // Background is visible but obscured from the first moment of play
-    const baseBlur = deviceType === 'mobile' ? 20 : 35;
-    const currentBlur = Math.max(0, baseBlur * (1 - bgRevealProgress));
-    const currentBrightness = 0.2 + (bgRevealProgress * 0.8);
-    const currentContrast = 0.8 + (bgRevealProgress * 0.2);
-
-    switch(deviceType) {
-      case 'mobile':
-        return { scale: 1.15, z: -100, blur: `${currentBlur}px`, opacity: 1, brightness: currentBrightness, contrast: currentContrast };
-      case 'tablet':
-        return { scale: 1.0, z: -50, blur: `${currentBlur}px`, opacity: 1, brightness: currentBrightness, contrast: currentContrast };
-      default:
-        return { scale: 1.25, z: -200, blur: `${currentBlur}px`, opacity: 1, brightness: currentBrightness, contrast: currentContrast };
-    }
-  };
-
-  const { scale: bgScale, z: bgZ, blur: bgBlur, opacity: bgOpacity, brightness: bgBrightness, contrast: bgContrast } = getBgConfig();
+  const revealPercent = Math.min(Math.round((score / WIN_TARGET) * 100), 100);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden font-sans select-none touch-none">
+    <div className="relative w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* 3D Glass Header */}
-      <div className="fixed top-0 left-0 w-full z-[2000] p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 bg-gradient-to-b from-black/95 via-black/40 to-transparent pointer-events-none safe-top">
-        <div className="flex flex-col items-center md:items-start drop-shadow-lg">
-          <h1 className="text-white text-2xl md:text-3xl font-black tracking-tighter">
-            APPLE <span className="text-red-500">HARVEST</span>
-          </h1>
-          <p className="hidden md:block text-red-400 text-[10px] font-black uppercase tracking-[0.4em] opacity-90">Every pop clears the view</p>
+      {/* UI Layer */}
+      <div className="fixed top-0 left-0 w-full z-[2000] p-6 flex justify-between items-start pointer-events-none">
+        <div className="bg-black/40 backdrop-blur-md p-4 rounded-3xl border border-white/10 shadow-2xl">
+          <h1 className="text-white text-xl font-black italic tracking-tighter">APPLE <span className="text-red-500 underline decoration-red-500/50">HARVEST</span></h1>
+          <p className="text-[9px] text-white/40 uppercase font-bold tracking-[0.2em] mt-1">Reveal the hidden world</p>
         </div>
-        
-        <div className="flex items-center gap-4 md:gap-8 bg-black/80 px-6 md:px-10 py-3 rounded-2xl border border-white/20 backdrop-blur-3xl shadow-2xl transition-all duration-500" style={{ opacity: status === GameStatus.IDLE ? 0 : 1 }}>
+
+        <div className={`flex items-center gap-6 bg-black/80 px-8 py-4 rounded-3xl border border-white/20 shadow-2xl transition-opacity duration-500 ${status === GameStatus.IDLE ? 'opacity-0' : 'opacity-100'}`}>
           <div className="flex flex-col items-center">
-            <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Time</span>
-            <span className={`text-xl md:text-3xl font-mono font-black tabular-nums transition-colors ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+            <span className="text-white/40 text-[9px] uppercase font-black">Time Left</span>
+            <span className={`text-2xl font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
               :{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
             </span>
           </div>
-          <div className="w-px h-10 bg-white/20"></div>
+          <div className="w-[1px] h-8 bg-white/10"></div>
           <div className="flex flex-col items-center">
-            <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Revealed</span>
-            <span className="text-xl md:text-3xl font-mono font-black tabular-nums text-green-400">
-              {Math.floor(bgRevealProgress * 100)}<span className="text-sm text-white/30 ml-1">%</span>
-            </span>
+            <span className="text-white/40 text-[9px] uppercase font-black">Revealed</span>
+            <span className="text-2xl font-mono font-black text-green-400">{revealPercent}%</span>
           </div>
         </div>
       </div>
 
-      {/* 3D Game Perspective Engine */}
-      <div 
-        className="relative w-full h-full overflow-hidden"
-        style={{ perspective: deviceType === 'mobile' ? '600px' : '1200px', perspectiveOrigin: '50% 50%' }}
-      >
+      {/* World Layer */}
+      <div className="relative w-full h-full" style={{ perspective: '1000px' }}>
+        
+        {/* The Sharp Background (Revealed Layer) */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://i.postimg.cc/tCCMJVcV/Avatar2.jpg" 
+            className="w-full h-full object-cover scale-105" 
+            alt="Secret"
+          />
+        </div>
+
+        {/* The Frost Overlay (Obscuring Layer) */}
         <div 
-          className="relative h-full w-full"
-          style={{ transformStyle: 'preserve-3d' }}
+          className="absolute inset-0 z-10 transition-opacity duration-1000"
+          style={{ 
+            opacity: status === GameStatus.WON ? 0 : 1,
+            pointerEvents: 'none'
+          }}
         >
-          {/* Background Layer - Strictly Reactive to Pops */}
-          <div 
-            className="absolute inset-0 transition-all duration-300 ease-out pointer-events-none" 
-            style={{ 
-              transform: `translate3d(0,0,${bgZ}px) scale(${bgScale})`,
-              transformOrigin: 'center center',
-              filter: `blur(${bgBlur}) brightness(${bgBrightness}) contrast(${bgContrast || 1})`,
-              opacity: bgOpacity
-            }}
-          >
-            <img 
-              src="https://i.postimg.cc/tCCMJVcV/Avatar2.jpg" 
-              className="w-full h-full object-cover" 
-              style={{ objectPosition: 'center center' }}
-              alt="Orchard Scene"
-            />
-          </div>
+          {/* Blurred Version */}
+          <img 
+            src="https://i.postimg.cc/tCCMJVcV/Avatar2.jpg" 
+            className="w-full h-full object-cover blur-3xl saturate-0 opacity-80 brightness-50" 
+            alt="Blurred"
+          />
+          {/* Real-time Dynamic Mask */}
+          <canvas 
+            ref={maskCanvasRef} 
+            className="absolute inset-0 mix-blend-destination-in w-full h-full"
+            style={{ pointerEvents: 'none' }}
+          />
+        </div>
 
-          {/* Interactive Apple Layer */}
-          <div 
-            className="absolute inset-0 pointer-events-auto"
-            style={{ transformStyle: 'preserve-3d' }}
-          >
-            {apples.map(apple => (
-              <Apple key={apple.id} data={apple} onClick={handleAppleClick} />
-            ))}
-            {particles.map(p => (
-              <Particle key={p.id} data={p} />
-            ))}
-          </div>
+        {/* The Apple Layer */}
+        <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
+          {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
+          {particles.map(p => <Particle key={p.id} data={p} />)}
         </div>
       </div>
-
-      {/* Spawning Overlay Message */}
-      {status === GameStatus.SPAWNING && (
-        <div className="fixed inset-0 z-[2500] pointer-events-none flex items-center justify-center">
-          <div className="text-6xl md:text-9xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_10px_30px_rgba(0,0,0,1)] animate-pulse">
-            READY?
-          </div>
-        </div>
-      )}
 
       {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-6 transition-all duration-700">
-          <div className="bg-gradient-to-br from-neutral-900 to-black p-10 md:p-14 rounded-[3.5rem] shadow-2xl border border-white/10 max-w-sm md:max-w-md w-full transform transition-all text-center">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-6">
+          <div className="bg-neutral-900 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-[0_0_100px_rgba(255,0,0,0.1)]">
             {status === GameStatus.IDLE ? (
               <>
-                <div className="w-28 h-28 bg-gradient-to-br from-red-600 to-red-950 rounded-[2.5rem] mx-auto mb-10 flex items-center justify-center shadow-[0_20px_50px_rgba(220,38,38,0.4)] relative">
-                   <div className="w-16 h-16 bg-white rounded-full relative shadow-inner overflow-hidden">
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-3 h-8 bg-amber-900 rounded-full"></div>
-                      <div className="absolute top-2 left-2 w-8 h-8 bg-red-100 rounded-full blur-xl opacity-50"></div>
-                   </div>
-                   <div className="absolute -top-4 -right-2 text-4xl animate-bounce">🍎</div>
-                </div>
-                <h2 className="text-5xl font-black text-white mb-6 tracking-tighter uppercase leading-none italic">APPLE<br/>HARVEST</h2>
-                <p className="text-white/50 mb-10 font-medium leading-relaxed px-2 text-lg">
-                  Pop the apple curtain to clarify the secret view. Reach <span className="text-red-400 font-bold">{WIN_TARGET}</span> clears before time expires!
+                <div className="text-7xl mb-6">🍎</div>
+                <h2 className="text-4xl font-black text-white mb-4 italic tracking-tighter">THE HARVEST</h2>
+                <p className="text-white/50 mb-10 text-lg">
+                  Behind these apples lies a secret image. Pop <span className="text-red-500 font-bold">{WIN_TARGET}</span> of them to clear the path.
                 </p>
               </>
             ) : status === GameStatus.WON ? (
               <>
-                <div className="text-8xl mb-8 animate-bounce">✨</div>
-                <h2 className="text-5xl font-black text-green-400 mb-4 italic uppercase tracking-tighter">SUCCESS!</h2>
-                <p className="text-white/80 text-xl font-bold mb-8">The Orchard is Revealed</p>
-                {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-6 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
+                <div className="text-7xl mb-6">🌟</div>
+                <h2 className="text-4xl font-black text-green-400 mb-2 italic">VICTORY</h2>
+                <p className="text-white/80 font-bold mb-6">The Secret is Revealed!</p>
+                {feedback && <p className="text-white/40 italic text-sm mb-10 bg-white/5 p-6 rounded-2xl">{feedback}</p>}
               </>
             ) : (
               <>
-                <div className="text-8xl mb-8 opacity-40">⏳</div>
-                <h2 className="text-5xl font-black text-red-500 mb-4 uppercase italic tracking-tighter">TIME'S UP</h2>
-                <p className="text-white/80 text-xl font-bold mb-8">Harvested {score} / {WIN_TARGET} apples</p>
-                {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-6 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
+                <div className="text-7xl mb-6">🍂</div>
+                <h2 className="text-4xl font-black text-red-500 mb-2 italic">WINTER COMES</h2>
+                <p className="text-white/80 font-bold mb-6">You only cleared {revealPercent}%</p>
+                {feedback && <p className="text-white/40 italic text-sm mb-10 bg-white/5 p-6 rounded-2xl">{feedback}</p>}
               </>
             )}
 
             <button
               onClick={initGame}
-              className="group relative w-full py-7 px-10 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2rem] transition-all shadow-[0_20px_40px_rgba(220,38,38,0.3)] active:scale-95 text-2xl uppercase tracking-[0.2em] overflow-hidden"
+              className="w-full py-6 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-xl uppercase tracking-widest shadow-2xl shadow-red-900/40"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-              <span className="relative drop-shadow-2xl">{status === GameStatus.IDLE ? 'START HARVEST' : 'TRY AGAIN'}</span>
+              {status === GameStatus.IDLE ? 'BEGIN HARVEST' : 'PLAY AGAIN'}
             </button>
           </div>
         </div>
