@@ -1,6 +1,7 @@
 export enum GameStatus {
   IDLE = 'IDLE',
   SPAWNING = 'SPAWNING',
+  COUNTDOWN = 'COUNTDOWN',
   PLAYING = 'PLAYING',
   WON = 'WON',
   LOST = 'LOST'

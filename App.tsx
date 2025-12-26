@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [countdown, setCountdown] = useState<number | string>(3);
   
   const timerRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -33,7 +34,7 @@ const App: React.FC = () => {
   }, []);
 
   // Sound Engine
-  const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'chime', currentScore?: number) => {
+  const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'chime' | 'countdown' | 'click', currentScore?: number) => {
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -44,6 +45,18 @@ const App: React.FC = () => {
       const now = ctx.currentTime;
 
       switch (type) {
+        case 'click': {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(150, now);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(now + 0.1);
+          break;
+        }
         case 'pop': {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -87,6 +100,19 @@ const App: React.FC = () => {
           osc.stop(now + 0.5);
           break;
         }
+        case 'countdown': {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(660, now);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+          break;
+        }
         case 'win':
           [523, 659, 783, 1046].forEach((f, i) => {
             const o = ctx.createOscillator();
@@ -128,9 +154,7 @@ const App: React.FC = () => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw the blurred layer
     if (bgImageRef.current) {
-      // Draw image
       ctx.save();
       ctx.filter = 'blur(40px) saturate(0.2) brightness(0.4)';
       
@@ -154,7 +178,6 @@ const App: React.FC = () => {
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
       ctx.restore();
     } else {
-      // Fallback if image not loaded
       ctx.fillStyle = '#1a1a1a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
@@ -167,7 +190,6 @@ const App: React.FC = () => {
       else if (width >= 768 && width <= 1024) setDeviceType('tablet');
       else setDeviceType('desktop');
       
-      // Only clear/reset mask if we're not in the middle of a game
       if (status === GameStatus.IDLE) {
         clearMask();
       }
@@ -183,7 +205,7 @@ const App: React.FC = () => {
       x: Math.random() * 90 + 5,
       y: Math.random() * 90 + 5,
       z: Math.random() * 100 - 50,
-      size: deviceType === 'mobile' ? (45 + Math.random() * 20) : (75 + Math.random() * 25),
+      size: deviceType === 'mobile' ? (45 + Math.random() * 20) : (65 + Math.random() * 20),
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? 0 : Math.random() * 0.1,
       color: Math.random() > 0.05 ? 'red' : 'green', 
@@ -202,7 +224,6 @@ const App: React.FC = () => {
     const radius = size * 1.5;
 
     ctx.save();
-    // Erase the blurred layer
     ctx.globalCompositeOperation = 'destination-out';
     const gradient = ctx.createRadialGradient(x, y, radius * 0.1, x, y, radius);
     gradient.addColorStop(0, 'rgba(0,0,0,1)');
@@ -237,8 +258,28 @@ const App: React.FC = () => {
     }, 800);
   }, []);
 
+  const runCountdown = useCallback(() => {
+    setStatus(GameStatus.COUNTDOWN);
+    let count = 3;
+    setCountdown(count);
+    playSound('countdown');
+
+    const interval = setInterval(() => {
+      count -= 1;
+      if (count > 0) {
+        setCountdown(count);
+        playSound('countdown');
+      } else if (count === 0) {
+        setCountdown('GO!');
+        playSound('start');
+      } else {
+        clearInterval(interval);
+        setStatus(GameStatus.PLAYING);
+      }
+    }, 1000);
+  }, []);
+
   const initGame = useCallback(() => {
-    playSound('start');
     clearMask();
     setStatus(GameStatus.SPAWNING);
     setScore(0);
@@ -252,8 +293,18 @@ const App: React.FC = () => {
     }
     setApples(initialBatch);
 
-    setTimeout(() => setStatus(GameStatus.PLAYING), 1000);
-  }, [createApple, clearMask]);
+    setTimeout(() => {
+      runCountdown();
+    }, 800);
+  }, [createApple, clearMask, runCountdown]);
+
+  const quitToHome = useCallback(() => {
+    playSound('click');
+    setStatus(GameStatus.IDLE);
+    setApples([]);
+    setParticles([]);
+    clearMask();
+  }, [clearMask]);
 
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
@@ -271,7 +322,6 @@ const App: React.FC = () => {
           return next;
         });
         
-        // Immediate replacement spawn
         const newOnes = [];
         if (Math.random() > 0.2) newOnes.push(createApple(`apple-new-${Date.now()}`));
         return [...prev.filter(a => a.id !== id), ...newOnes];
@@ -318,10 +368,22 @@ const App: React.FC = () => {
 
   const revealPercent = Math.min(Math.round((score / WIN_TARGET) * 100), 100);
 
+  const heroAppleData: AppleData = {
+    id: 'hero-apple',
+    x: 50,
+    y: 50,
+    z: 100,
+    size: 240,
+    rotation: 0,
+    delay: 0,
+    color: 'red',
+    variationSeed: 0.5,
+  };
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* UI Controls */}
+      {/* HUD */}
       <div className="fixed top-0 left-0 w-full z-[2000] p-6 flex justify-between items-start pointer-events-none safe-top">
         <div className="bg-black/60 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white/10 shadow-2xl pointer-events-none">
           <h1 className="text-white text-2xl font-black italic tracking-tighter leading-none">
@@ -342,13 +404,26 @@ const App: React.FC = () => {
             <span className="text-white/30 text-[9px] uppercase font-black">Revealed</span>
             <span className="text-2xl font-mono font-black text-green-400">{revealPercent}%</span>
           </div>
+          {status === GameStatus.PLAYING && (
+            <>
+              <div className="w-[1px] h-10 bg-white/10"></div>
+              <button 
+                onPointerDown={quitToHome}
+                className="pointer-events-auto bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors active:scale-90"
+                title="Restart Game"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Main Render Plane */}
       <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
-        
-        {/* Layer 0: The Sharp Secret Image */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img 
             src={BG_URL} 
@@ -357,10 +432,9 @@ const App: React.FC = () => {
           />
         </div>
 
-        {/* Layer 1: The Scratchable Blurred Layer */}
         <div 
           className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000"
-          style={{ opacity: status === GameStatus.WON ? 0 : 1 }}
+          style={{ opacity: 1 }}
         >
           <canvas 
             ref={maskCanvasRef} 
@@ -368,14 +442,22 @@ const App: React.FC = () => {
           />
         </div>
 
-        {/* Layer 2: Interactive Apples */}
         <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
           {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
           {particles.map(p => <Particle key={p.id} data={p} />)}
         </div>
       </div>
 
-      {/* Game States Overlays */}
+      {/* Countdown Overlay */}
+      {status === GameStatus.COUNTDOWN && (
+        <div className="fixed inset-0 z-[2500] flex items-center justify-center pointer-events-none">
+          <div className="text-[18rem] md:text-[24rem] font-black text-white italic drop-shadow-[0_20px_50px_rgba(220,38,38,0.8)] animate-ping">
+            {countdown}
+          </div>
+        </div>
+      )}
+
+      {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-6">
           <div className="bg-neutral-900/80 p-12 md:p-16 rounded-[4rem] border border-white/10 max-w-lg w-full text-center shadow-[0_0_200px_rgba(255,0,0,0.1)] overflow-hidden relative backdrop-saturate-150">
@@ -384,9 +466,11 @@ const App: React.FC = () => {
             
             {status === GameStatus.IDLE ? (
               <>
-                <div className="relative inline-block mb-8">
-                  <div className="text-9xl animate-bounce drop-shadow-[0_15px_30px_rgba(220,38,38,0.5)]">🍎</div>
-                  <div className="absolute -top-4 -right-4 text-3xl animate-pulse">✨</div>
+                <div className="relative w-full h-48 flex items-center justify-center mb-12">
+                   <div className="relative w-48 h-48 animate-bounce" style={{ perspective: '1000px' }}>
+                      <Apple data={heroAppleData} onClick={() => {}} />
+                   </div>
+                   <div className="absolute -top-4 -right-12 text-4xl animate-pulse">✨</div>
                 </div>
                 <h2 className="text-5xl font-black text-white mb-6 italic tracking-tighter leading-none uppercase">APPLE HARVEST</h2>
                 <p className="text-white/60 mb-12 text-xl font-medium leading-relaxed">
@@ -403,15 +487,23 @@ const App: React.FC = () => {
             ) : status === GameStatus.WON ? (
               <>
                 <div className="text-8xl mb-8">🧺</div>
-                <h2 className="text-5xl font-black text-green-400 mb-4 italic tracking-tighter uppercase">APPLE HARVESTED</h2>
-                <p className="text-white/80 font-bold text-2xl mb-6">Masterful Harvesting!</p>
+                <h2 className="text-5xl font-black text-green-400 mb-4 italic tracking-tighter uppercase">HARVESTED</h2>
+                <p className="text-white/80 font-bold text-2xl mb-6">Masterful reveal!</p>
                 {feedback && <div className="text-white/40 italic text-lg mb-12 bg-white/5 p-8 rounded-3xl border border-white/5">"{feedback}"</div>}
-                <button
-                  onPointerDown={initGame}
-                  className="group relative w-full py-7 bg-white/10 hover:bg-white/20 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em] border border-white/20"
-                >
-                  PLAY AGAIN
-                </button>
+                <div className="flex flex-col gap-4">
+                  <button
+                    onPointerDown={initGame}
+                    className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em] shadow-[0_15px_30px_rgba(220,38,38,0.4)]"
+                  >
+                    PLAY AGAIN
+                  </button>
+                  <button
+                    onPointerDown={quitToHome}
+                    className="text-white/40 hover:text-white uppercase font-black tracking-widest text-xs py-2 transition-colors"
+                  >
+                    RETURN TO MENU
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -419,12 +511,20 @@ const App: React.FC = () => {
                 <h2 className="text-5xl font-black text-red-500 mb-4 italic tracking-tighter uppercase">FROZEN</h2>
                 <p className="text-white/80 font-bold text-2xl mb-6">Cleared only {revealPercent}%</p>
                 {feedback && <div className="text-white/40 italic text-lg mb-12 bg-white/5 p-8 rounded-3xl border border-white/5">"{feedback}"</div>}
-                <button
-                  onPointerDown={initGame}
-                  className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em]"
-                >
-                  RETRY HARVEST
-                </button>
+                <div className="flex flex-col gap-4">
+                  <button
+                    onPointerDown={initGame}
+                    className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em]"
+                  >
+                    RETRY HARVEST
+                  </button>
+                  <button
+                    onPointerDown={quitToHome}
+                    className="text-white/40 hover:text-white uppercase font-black tracking-widest text-xs py-2 transition-colors"
+                  >
+                    RETURN TO MENU
+                  </button>
+                </div>
               </>
             )}
           </div>
