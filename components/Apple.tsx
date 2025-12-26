@@ -12,8 +12,9 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
   
   return (
     <div
-      onClick={(e) => {
+      onPointerDown={(e) => {
         e.stopPropagation();
+        // Use pointer down for immediate response
         onClick(data.id);
       }}
       className="absolute cursor-pointer group"
@@ -27,61 +28,62 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
         transform: `translate3d(-50%, -50%, ${data.z}px) rotate(${data.rotation}deg) scale(0)`,
         animation: `apple-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, float ${4 + variation * 2}s ease-in-out infinite`,
         animationDelay: `${data.delay}s, ${data.delay + 0.4}s`,
+        touchAction: 'none'
       }}
     >
-      <div className="relative w-full h-full transition-transform group-hover:scale-110 active:scale-90" style={{ transformStyle: 'preserve-3d' }}>
+      <div className="relative w-full h-full transition-transform group-hover:scale-110 active:scale-95" style={{ transformStyle: 'preserve-3d' }}>
         
         {/* Dimple / Top Shadow */}
-        <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-1/3 h-[15%] bg-black/20 rounded-full blur-sm z-20"></div>
+        <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-1/3 h-[12%] bg-black/30 rounded-full blur-sm z-20"></div>
 
         {/* Stem */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2 bg-gradient-to-b from-[#3a1d00] to-black rounded-full"
+          className="absolute left-1/2 -translate-x-1/2 bg-gradient-to-b from-[#2a1600] to-black rounded-full"
           style={{ 
-            top: '-15%',
-            width: '8%', 
-            height: '35%',
-            transform: `translateZ(-5px) rotate(${variation * 30 - 15}deg)`,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            top: '-18%',
+            width: '6%', 
+            height: '38%',
+            transform: `translateZ(-2px) rotate(${variation * 20 - 10}deg)`,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
           }}
         ></div>
 
         {/* Leaf */}
         <div 
-          className="absolute -top-[10%] left-[55%] w-[50%] h-[25%] origin-left"
+          className="absolute -top-[12%] left-[52%] w-[45%] h-[22%] origin-left"
           style={{ 
-            transform: `rotate(${30 + variation * 40}deg) scale(${0.8 + variation * 0.4})`,
+            transform: `rotate(${25 + variation * 30}deg) scale(${0.9 + variation * 0.3})`,
             zIndex: 10
           }}
         >
-          <div className="w-full h-full bg-gradient-to-br from-green-400 via-green-700 to-green-950 rounded-[50%_0_50%_0] border border-white/10 shadow-lg"></div>
+          <div className="w-full h-full bg-gradient-to-br from-green-400 via-green-800 to-green-950 rounded-[50%_0_50%_0] border border-black/10 shadow-md"></div>
         </div>
 
         {/* Main Body */}
         <div 
-          className="absolute inset-0 rounded-[45%_45%_40%_40%] shadow-[inset_-5px_-10px_20px_rgba(0,0,0,0.6),inset_5px_5px_15px_rgba(255,255,255,0.2),0_15px_30px_rgba(0,0,0,0.4)] overflow-hidden"
+          className="absolute inset-0 rounded-[48%_48%_42%_42%] shadow-[inset_-6px_-12px_22px_rgba(0,0,0,0.6),inset_6px_6px_18px_rgba(255,255,255,0.25),0_12px_24px_rgba(0,0,0,0.4)] overflow-hidden"
           style={{ 
             background: isRed 
-              ? `radial-gradient(circle at 30% 30%, #ff5e5e 0%, #d10000 45%, #630000 100%)`
-              : `radial-gradient(circle at 30% 30%, #e1ff6b 0%, #7dbd00 45%, #2d4d00 100%)`
+              ? `radial-gradient(circle at 35% 35%, #ff4d4d 0%, #cc0000 50%, #500000 100%)`
+              : `radial-gradient(circle at 35% 35%, #d4ff4d 0%, #6da300 50%, #254000 100%)`
           }}
         >
-          {/* Skin Imperfections (Speckles) */}
+          {/* Skin Pores / Speckles */}
           <div 
-            className="absolute inset-0 opacity-10 mix-blend-overlay"
+            className="absolute inset-0 opacity-15 mix-blend-overlay"
             style={{ 
-              backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-              backgroundSize: '4px 4px'
+              backgroundImage: 'radial-gradient(circle, #fff 1.2px, transparent 1.2px)',
+              backgroundSize: '5px 5px'
             }}
           ></div>
           
           {/* Main Specular Highlight */}
-          <div className="absolute top-[15%] left-[20%] w-[30%] h-[20%] bg-white/30 rounded-full blur-md -rotate-12"></div>
+          <div className="absolute top-[18%] left-[25%] w-[25%] h-[15%] bg-white/40 rounded-full blur-lg -rotate-15"></div>
           
-          {/* Secondary Subsurface Glow */}
+          {/* Subsurface Glow at bottom */}
           <div 
-            className="absolute bottom-[10%] right-[15%] w-[40%] h-[40%] rounded-full blur-2xl"
-            style={{ backgroundColor: isRed ? 'rgba(255,100,0,0.15)' : 'rgba(200,255,0,0.1)' }}
+            className="absolute bottom-[8%] right-[20%] w-[35%] h-[35%] rounded-full blur-2xl"
+            style={{ backgroundColor: isRed ? 'rgba(255,80,0,0.2)' : 'rgba(180,255,0,0.15)' }}
           ></div>
         </div>
 
