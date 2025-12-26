@@ -196,7 +196,7 @@ const App: React.FC = () => {
     setApples(prev => {
       const remaining = prev.filter(apple => apple.id !== id);
       const spawnChance = Math.random();
-      const spawnCount = spawnChance > 0.7 ? 2 : (spawnChance > 0.3 ? 1 : 0);
+      const spawnCount = spawnChance > 0.8 ? 2 : (spawnChance > 0.4 ? 1 : 0);
       
       const newSpawn: AppleData[] = [];
       for(let i = 0; i < spawnCount; i++) {
@@ -241,13 +241,14 @@ const App: React.FC = () => {
           });
           setFeedback(response.text ?? null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "You've successfully revealed the orchard's secret!" : "The harvest season isn't over yet. Keep picking!");
+          setFeedback(status === GameStatus.WON ? "The secret is finally revealed!" : "Close, but the harvest continues. Try again!");
         }
       };
       generateMessage();
     }
   }, [status, score]);
 
+  // Progressive Reveal logic: Photo visibility is updated every single pop
   const bgRevealProgress = useMemo(() => {
     if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) return 0;
     if (status === GameStatus.WON) return 1;
@@ -255,35 +256,39 @@ const App: React.FC = () => {
   }, [score, status]);
 
   const getBgConfig = () => {
+    // Completely hidden at the very start screen
     if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) {
-      return { scale: 1.1, z: -150, blur: 'none', opacity: 0, brightness: 0 };
+      return { scale: 1.1, z: -150, blur: '40px', opacity: 0, brightness: 0 };
     }
     
-    const baseBlur = deviceType === 'mobile' ? 15 : 25;
+    // Background is visible but obscured from the first moment of play
+    const baseBlur = deviceType === 'mobile' ? 20 : 35;
     const currentBlur = Math.max(0, baseBlur * (1 - bgRevealProgress));
-    const currentBrightness = 0.3 + (bgRevealProgress * 0.7);
+    const currentBrightness = 0.2 + (bgRevealProgress * 0.8);
+    const currentContrast = 0.8 + (bgRevealProgress * 0.2);
 
     switch(deviceType) {
       case 'mobile':
-        return { scale: 1.15, z: -100, blur: `${currentBlur}px`, opacity: bgRevealProgress > 0 ? 1 : 0, brightness: currentBrightness };
+        return { scale: 1.15, z: -100, blur: `${currentBlur}px`, opacity: 1, brightness: currentBrightness, contrast: currentContrast };
       case 'tablet':
-        return { scale: 1.0, z: -50, blur: `${currentBlur}px`, opacity: bgRevealProgress > 0 ? 1 : 0, brightness: currentBrightness };
+        return { scale: 1.0, z: -50, blur: `${currentBlur}px`, opacity: 1, brightness: currentBrightness, contrast: currentContrast };
       default:
-        return { scale: 1.25, z: -200, blur: `${currentBlur}px`, opacity: bgRevealProgress > 0 ? 1 : 0, brightness: currentBrightness };
+        return { scale: 1.25, z: -200, blur: `${currentBlur}px`, opacity: 1, brightness: currentBrightness, contrast: currentContrast };
     }
   };
 
-  const { scale: bgScale, z: bgZ, blur: bgBlur, opacity: bgOpacity, brightness: bgBrightness } = getBgConfig();
+  const { scale: bgScale, z: bgZ, blur: bgBlur, opacity: bgOpacity, brightness: bgBrightness, contrast: bgContrast } = getBgConfig();
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden font-sans select-none touch-none">
       
+      {/* 3D Glass Header */}
       <div className="fixed top-0 left-0 w-full z-[2000] p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 bg-gradient-to-b from-black/95 via-black/40 to-transparent pointer-events-none safe-top">
         <div className="flex flex-col items-center md:items-start drop-shadow-lg">
           <h1 className="text-white text-2xl md:text-3xl font-black tracking-tighter">
             APPLE <span className="text-red-500">HARVEST</span>
           </h1>
-          <p className="hidden md:block text-red-400 text-[10px] font-black uppercase tracking-[0.4em] opacity-90">Pop apples to reveal the view</p>
+          <p className="hidden md:block text-red-400 text-[10px] font-black uppercase tracking-[0.4em] opacity-90">Every pop clears the view</p>
         </div>
         
         <div className="flex items-center gap-4 md:gap-8 bg-black/80 px-6 md:px-10 py-3 rounded-2xl border border-white/20 backdrop-blur-3xl shadow-2xl transition-all duration-500" style={{ opacity: status === GameStatus.IDLE ? 0 : 1 }}>
@@ -295,7 +300,7 @@ const App: React.FC = () => {
           </div>
           <div className="w-px h-10 bg-white/20"></div>
           <div className="flex flex-col items-center">
-            <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Progress</span>
+            <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Revealed</span>
             <span className="text-xl md:text-3xl font-mono font-black tabular-nums text-green-400">
               {Math.floor(bgRevealProgress * 100)}<span className="text-sm text-white/30 ml-1">%</span>
             </span>
@@ -303,6 +308,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* 3D Game Perspective Engine */}
       <div 
         className="relative w-full h-full overflow-hidden"
         style={{ perspective: deviceType === 'mobile' ? '600px' : '1200px', perspectiveOrigin: '50% 50%' }}
@@ -311,12 +317,13 @@ const App: React.FC = () => {
           className="relative h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
         >
+          {/* Background Layer - Strictly Reactive to Pops */}
           <div 
-            className="absolute inset-0 transition-all duration-700 ease-out pointer-events-none" 
+            className="absolute inset-0 transition-all duration-300 ease-out pointer-events-none" 
             style={{ 
               transform: `translate3d(0,0,${bgZ}px) scale(${bgScale})`,
               transformOrigin: 'center center',
-              filter: `blur(${bgBlur}) brightness(${bgBrightness})`,
+              filter: `blur(${bgBlur}) brightness(${bgBrightness}) contrast(${bgContrast || 1})`,
               opacity: bgOpacity
             }}
           >
@@ -328,6 +335,7 @@ const App: React.FC = () => {
             />
           </div>
 
+          {/* Interactive Apple Layer */}
           <div 
             className="absolute inset-0 pointer-events-auto"
             style={{ transformStyle: 'preserve-3d' }}
@@ -342,6 +350,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* Spawning Overlay Message */}
       {status === GameStatus.SPAWNING && (
         <div className="fixed inset-0 z-[2500] pointer-events-none flex items-center justify-center">
           <div className="text-6xl md:text-9xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_10px_30px_rgba(0,0,0,1)] animate-pulse">
@@ -350,6 +359,7 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-6 transition-all duration-700">
           <div className="bg-gradient-to-br from-neutral-900 to-black p-10 md:p-14 rounded-[3.5rem] shadow-2xl border border-white/10 max-w-sm md:max-w-md w-full transform transition-all text-center">
@@ -364,7 +374,7 @@ const App: React.FC = () => {
                 </div>
                 <h2 className="text-5xl font-black text-white mb-6 tracking-tighter uppercase leading-none italic">APPLE<br/>HARVEST</h2>
                 <p className="text-white/50 mb-10 font-medium leading-relaxed px-2 text-lg">
-                  Pop the dense wall of apples to reveal the hidden scene. Harvest <span className="text-red-400 font-bold">{WIN_TARGET}</span> pieces to clear the view!
+                  Pop the apple curtain to clarify the secret view. Reach <span className="text-red-400 font-bold">{WIN_TARGET}</span> clears before time expires!
                 </p>
               </>
             ) : status === GameStatus.WON ? (
@@ -378,7 +388,7 @@ const App: React.FC = () => {
               <>
                 <div className="text-8xl mb-8 opacity-40">⏳</div>
                 <h2 className="text-5xl font-black text-red-500 mb-4 uppercase italic tracking-tighter">TIME'S UP</h2>
-                <p className="text-white/80 text-xl font-bold mb-8">Cleared {score} / {WIN_TARGET} apples</p>
+                <p className="text-white/80 text-xl font-bold mb-8">Harvested {score} / {WIN_TARGET} apples</p>
                 {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-6 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
               </>
             )}
@@ -388,7 +398,7 @@ const App: React.FC = () => {
               className="group relative w-full py-7 px-10 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2rem] transition-all shadow-[0_20px_40px_rgba(220,38,38,0.3)] active:scale-95 text-2xl uppercase tracking-[0.2em] overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-              <span className="relative drop-shadow-2xl">{status === GameStatus.IDLE ? 'START PICKING' : 'TRY AGAIN'}</span>
+              <span className="relative drop-shadow-2xl">{status === GameStatus.IDLE ? 'START HARVEST' : 'TRY AGAIN'}</span>
             </button>
           </div>
         </div>
