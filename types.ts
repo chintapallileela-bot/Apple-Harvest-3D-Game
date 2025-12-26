@@ -17,3 +17,16 @@ export interface AppleData {
   color: 'red' | 'green';
   variationSeed: number;
 }
+
+export interface ParticleData {
+  id: string;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  color: string;
+  type: 'seed' | 'leaf' | 'dust';
+  size: number;
+  rotation: number;
+}

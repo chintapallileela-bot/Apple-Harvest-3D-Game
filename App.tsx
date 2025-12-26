@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { GameStatus, AppleData } from './types';
+import { GameStatus, AppleData, ParticleData } from './types';
 import { GAME_DURATION } from './constants';
 import Apple from './components/Apple';
+import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
 const INITIAL_SCREEN_APPLES = 350; 
@@ -11,6 +12,7 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [apples, setApples] = useState<AppleData[]>([]);
+  const [particles, setParticles] = useState<ParticleData[]>([]);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
@@ -117,12 +119,45 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const triggerBurst = useCallback((apple: AppleData) => {
+    const newParticles: ParticleData[] = [];
+    const count = 6 + Math.floor(Math.random() * 5);
+    
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 50 + Math.random() * 100;
+      const types: ('seed' | 'leaf' | 'dust')[] = ['seed', 'leaf', 'dust'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      
+      newParticles.push({
+        id: `p-${Date.now()}-${i}`,
+        x: apple.x,
+        y: apple.y,
+        z: apple.z,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: type === 'leaf' ? '#22c55e' : (apple.color === 'red' ? '#ef4444' : '#84cc16'),
+        type,
+        size: type === 'dust' ? 4 : (type === 'seed' ? 6 : 12),
+        rotation: Math.random() * 360,
+      });
+    }
+
+    setParticles(prev => [...prev, ...newParticles]);
+
+    // Clean up particles after animation
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 1000);
+  }, []);
+
   const initGame = useCallback(() => {
     playSound('start');
     setStatus(GameStatus.SPAWNING);
     setScore(0);
     setTimeLeft(GAME_DURATION);
     setFeedback(null);
+    setParticles([]);
 
     const initialBatch: AppleData[] = [];
     const spawnDuration = 1.8; 
@@ -143,6 +178,11 @@ const App: React.FC = () => {
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
     
+    const targetApple = apples.find(a => a.id === id);
+    if (targetApple) {
+      triggerBurst(targetApple);
+    }
+
     playSound('pop');
     setScore(prev => {
       const newScore = prev + 1;
@@ -155,8 +195,6 @@ const App: React.FC = () => {
 
     setApples(prev => {
       const remaining = prev.filter(apple => apple.id !== id);
-      // Spawn slightly fewer than we pop to gradually reduce density as reveal happens, 
-      // but keep enough to maintain the challenge.
       const spawnChance = Math.random();
       const spawnCount = spawnChance > 0.7 ? 2 : (spawnChance > 0.3 ? 1 : 0);
       
@@ -166,7 +204,7 @@ const App: React.FC = () => {
       }
       return [...remaining, ...newSpawn];
     });
-  }, [status, createApple]);
+  }, [status, createApple, apples, triggerBurst]);
 
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
@@ -210,7 +248,6 @@ const App: React.FC = () => {
     }
   }, [status, score]);
 
-  // Progressive Reveal logic: Photo becomes visible as score increases
   const bgRevealProgress = useMemo(() => {
     if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) return 0;
     if (status === GameStatus.WON) return 1;
@@ -218,7 +255,6 @@ const App: React.FC = () => {
   }, [score, status]);
 
   const getBgConfig = () => {
-    // Hidden at the very start
     if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) {
       return { scale: 1.1, z: -150, blur: 'none', opacity: 0, brightness: 0 };
     }
@@ -242,7 +278,6 @@ const App: React.FC = () => {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* 3D Glass Header */}
       <div className="fixed top-0 left-0 w-full z-[2000] p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 bg-gradient-to-b from-black/95 via-black/40 to-transparent pointer-events-none safe-top">
         <div className="flex flex-col items-center md:items-start drop-shadow-lg">
           <h1 className="text-white text-2xl md:text-3xl font-black tracking-tighter">
@@ -268,7 +303,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* 3D Game Perspective Engine */}
       <div 
         className="relative w-full h-full overflow-hidden"
         style={{ perspective: deviceType === 'mobile' ? '600px' : '1200px', perspectiveOrigin: '50% 50%' }}
@@ -277,7 +311,6 @@ const App: React.FC = () => {
           className="relative h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Background Layer - Progressive reveal based on score */}
           <div 
             className="absolute inset-0 transition-all duration-700 ease-out pointer-events-none" 
             style={{ 
@@ -295,7 +328,6 @@ const App: React.FC = () => {
             />
           </div>
 
-          {/* Interactive Apple Layer */}
           <div 
             className="absolute inset-0 pointer-events-auto"
             style={{ transformStyle: 'preserve-3d' }}
@@ -303,11 +335,13 @@ const App: React.FC = () => {
             {apples.map(apple => (
               <Apple key={apple.id} data={apple} onClick={handleAppleClick} />
             ))}
+            {particles.map(p => (
+              <Particle key={p.id} data={p} />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Spawning Overlay Message */}
       {status === GameStatus.SPAWNING && (
         <div className="fixed inset-0 z-[2500] pointer-events-none flex items-center justify-center">
           <div className="text-6xl md:text-9xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_10px_30px_rgba(0,0,0,1)] animate-pulse">
@@ -316,7 +350,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-6 transition-all duration-700">
           <div className="bg-gradient-to-br from-neutral-900 to-black p-10 md:p-14 rounded-[3.5rem] shadow-2xl border border-white/10 max-w-sm md:max-w-md w-full transform transition-all text-center">
