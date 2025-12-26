@@ -26,8 +26,8 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
         zIndex: Math.floor(data.z + 500),
         transformStyle: 'preserve-3d',
         transform: `translate3d(-50%, -50%, ${data.z}px) rotate(${data.rotation}deg) scale(0)`,
-        animation: `apple-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, float ${4 + variation * 2}s ease-in-out infinite`,
-        animationDelay: `${data.delay}s, ${data.delay + 0.4}s`,
+        animation: `apple-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`,
+        animationDelay: `${data.delay}s`,
         touchAction: 'none'
       }}
     >
