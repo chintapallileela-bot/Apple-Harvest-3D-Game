@@ -400,33 +400,20 @@ const App: React.FC = () => {
             <span className="text-white/30 text-[9px] uppercase font-black">Revealed</span>
             <span className="text-2xl font-mono font-black text-green-400">{revealPercent}%</span>
           </div>
-          {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN) && (
-            <>
-              <div className="w-[1px] h-10 bg-white/10"></div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onPointerDown={quitToHome}
-                  className="pointer-events-auto bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl transition-all active:scale-90 flex items-center gap-2 shadow-lg shadow-red-900/20"
-                  title="Stop Game"
-                >
-                  <div className="w-2.5 h-2.5 bg-white rounded-sm"></div>
-                  <span className="text-white font-black text-xs uppercase tracking-widest">STOP</span>
-                </button>
-                <button 
-                  onPointerDown={quitToHome}
-                  className="pointer-events-auto bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors active:scale-90"
-                  title="Restart Game"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                    <path d="M3 3v5h5"/>
-                  </svg>
-                </button>
-              </div>
-            </>
-          )}
         </div>
       </div>
+
+      {/* Floating Stop Button (Fixed for Quick Access) */}
+      {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+        <button 
+          onPointerDown={quitToHome}
+          className="fixed bottom-10 right-10 z-[2500] w-20 h-20 bg-red-600 hover:bg-red-500 text-white rounded-full flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(220,38,38,0.5)] active:scale-90 transition-all pointer-events-auto border-4 border-white/10"
+          title="Stop Game"
+        >
+          <div className="w-5 h-5 bg-white rounded-sm mb-1"></div>
+          <span className="text-[10px] font-black uppercase tracking-tighter">STOP</span>
+        </button>
+      )}
 
       {/* Main Render Plane */}
       <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
