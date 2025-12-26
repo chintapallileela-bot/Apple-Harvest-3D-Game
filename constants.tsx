@@ -2,7 +2,7 @@
 import React from 'react';
 
 export const GAME_DURATION = 60; // 60 seconds
-export const TOTAL_APPLES = 600; // Increased for dense coverage
+export const TOTAL_APPLES = 1200; // Significantly increased for a dense "curtain" effect
 
 export const AppleIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg 
