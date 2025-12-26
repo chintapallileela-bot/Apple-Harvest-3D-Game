@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AppleData } from '../types';
 
@@ -22,9 +21,9 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
         height: `${data.size}px`,
         zIndex: Math.floor(data.z + 1000),
         transformStyle: 'preserve-3d',
-        transform: `translate3d(-50%, -50%, ${data.z}px) rotate(${data.rotation}deg)`,
+        transform: `translate3d(-50%, -50%, ${data.z}px) rotate(${data.rotation}deg) scale(0)`,
         animation: `apple-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, float 5s ease-in-out infinite`,
-        animationDelay: `0s, ${data.delay}s`,
+        animationDelay: `${data.delay}s, ${data.delay + 0.5}s`,
       }}
     >
       <div className="relative w-full h-full transition-all duration-300 group-hover:scale-110 active:scale-90" style={{ transformStyle: 'preserve-3d' }}>
@@ -41,14 +40,14 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
           {/* Main highlight - "The Shine" */}
           <div className="absolute top-[8%] left-[18%] w-[35%] h-[25%] bg-gradient-to-b from-white/40 to-transparent rounded-full blur-sm -rotate-[25deg]"></div>
           
-          {/* Subsurface scattering effect (orange/yellow tint on edges) */}
+          {/* Subsurface scattering effect */}
           <div className="absolute bottom-[10%] right-[15%] w-[40%] h-[40%] bg-orange-500/10 rounded-full blur-2xl"></div>
 
           {/* Skin Pores / Texture */}
           <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 0)', backgroundSize: '3px 3px' }}></div>
         </div>
 
-        {/* Stem - Natural wood look */}
+        {/* Stem */}
         <div 
           className="absolute -top-[12%] left-1/2 -translate-x-1/2 w-[10%] h-[35%] bg-gradient-to-b from-[#4d2600] to-[#261300] rounded-full shadow-lg"
           style={{ transform: 'translateZ(10px) rotateX(-10deg)' }}
@@ -56,7 +55,7 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
           <div className="absolute top-0 right-0 w-1/3 h-full bg-black/30 rounded-full"></div>
         </div>
 
-        {/* Leaf - Lush Green with depth */}
+        {/* Leaf */}
         <div 
           className="absolute -top-[22%] left-[55%] w-[60%] h-[35%] origin-left"
           style={{ 

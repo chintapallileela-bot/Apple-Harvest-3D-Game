@@ -4,8 +4,7 @@ import { GAME_DURATION } from './constants';
 import Apple from './components/Apple';
 import { GoogleGenAI } from '@google/genai';
 
-// We'll aim for a target number of clears, but keep the screen populated.
-const INITIAL_SCREEN_APPLES = 350; // Densely covers the view
+const INITIAL_SCREEN_APPLES = 350; 
 const WIN_TARGET = 600; 
 
 const App: React.FC = () => {
@@ -16,6 +15,73 @@ const App: React.FC = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const timerRef = useRef<any>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Procedural Sound Generator
+  const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'spawn') => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+
+    switch (type) {
+      case 'pop':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+        break;
+      case 'spawn':
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200 + Math.random() * 200, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+        break;
+      case 'start':
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+        break;
+      case 'win':
+        [523.25, 659.25, 783.99].forEach((freq, i) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.setValueAtTime(freq, now + i * 0.1);
+          g.gain.setValueAtTime(0.2, now + i * 0.1);
+          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+          o.start(now + i * 0.1);
+          o.stop(now + i * 0.1 + 0.3);
+        });
+        break;
+      case 'lose':
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.5);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+        break;
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -29,57 +95,68 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const createApple = useCallback((id: string): AppleData => {
+  const createApple = useCallback((id: string, isSpawnSequence = false): AppleData => {
     const width = window.innerWidth;
     const isMobile = width < 768;
     const isTablet = width >= 768 && width <= 1024;
 
     return {
       id,
-      x: Math.random() * 110 - 5, // Slight bleed over edges
+      x: Math.random() * 110 - 5,
       y: Math.random() * 110 - 5,
       z: Math.random() * 400 - 150,
       size: isMobile ? (45 + Math.random() * 20) : (isTablet ? 55 + Math.random() * 25 : 75 + Math.random() * 30),
       rotation: Math.random() * 360,
-      delay: Math.random() * 2,
+      // If spawning sequence, stagger based on index later. Otherwise small random delay.
+      delay: isSpawnSequence ? 0 : Math.random() * 0.5,
     };
   }, []);
 
   const initGame = useCallback(() => {
+    playSound('start');
+    setStatus(GameStatus.SPAWNING);
+    setScore(0);
+    setTimeLeft(GAME_DURATION);
+    setFeedback(null);
+
     const initialBatch: AppleData[] = [];
+    const spawnDuration = 1.5; // seconds for all to appear
+    
     for (let i = 0; i < INITIAL_SCREEN_APPLES; i++) {
-      initialBatch.push(createApple(`apple-${i}-${Date.now()}`));
+      const apple = createApple(`apple-${i}-${Date.now()}`, true);
+      // stagger the delay over the spawn duration
+      apple.delay = (i / INITIAL_SCREEN_APPLES) * spawnDuration;
+      initialBatch.push(apple);
     }
     
     setApples(initialBatch);
-    setTimeLeft(GAME_DURATION);
-    setScore(0);
-    setStatus(GameStatus.PLAYING);
-    setFeedback(null);
+
+    // After animation finishes, start the actual gameplay
+    setTimeout(() => {
+      setStatus(GameStatus.PLAYING);
+    }, (spawnDuration + 0.5) * 1000);
   }, [createApple]);
 
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
     
+    playSound('pop');
     setScore(prev => {
       const newScore = prev + 1;
       if (newScore >= WIN_TARGET) {
         setStatus(GameStatus.WON);
+        playSound('win');
       }
       return newScore;
     });
 
     setApples(prev => {
-      // Remove the clicked apple
       const remaining = prev.filter(apple => apple.id !== id);
-      
-      // Keep the "wall" dense by adding new apples immediately
-      const spawnCount = Math.random() > 0.5 ? 2 : 1;
+      const spawnCount = Math.random() > 0.6 ? 2 : 1;
       const newSpawn: AppleData[] = [];
       for(let i = 0; i < spawnCount; i++) {
         newSpawn.push(createApple(`apple-new-${Date.now()}-${i}`));
       }
-      
       return [...remaining, ...newSpawn];
     });
   }, [status, createApple]);
@@ -90,6 +167,7 @@ const App: React.FC = () => {
         setTimeLeft(prev => {
           if (prev <= 1) {
             setStatus(GameStatus.LOST);
+            playSound('lose');
             return 0;
           }
           return prev - 1;
@@ -128,11 +206,11 @@ const App: React.FC = () => {
   const getBgConfig = () => {
     switch(deviceType) {
       case 'mobile':
-        return { scale: 1.15, z: -100, blur: status === GameStatus.PLAYING ? 'blur(8px)' : 'none' };
+        return { scale: 1.15, z: -100, blur: (status === GameStatus.PLAYING || status === GameStatus.SPAWNING) ? 'blur(8px)' : 'none' };
       case 'tablet':
-        return { scale: 0.9, z: -30, blur: status === GameStatus.PLAYING ? 'blur(6px)' : 'none' };
+        return { scale: 0.9, z: -30, blur: (status === GameStatus.PLAYING || status === GameStatus.SPAWNING) ? 'blur(6px)' : 'none' };
       default:
-        return { scale: 1.25, z: -150, blur: status === GameStatus.PLAYING ? 'blur(10px)' : 'none' };
+        return { scale: 1.25, z: -150, blur: (status === GameStatus.PLAYING || status === GameStatus.SPAWNING) ? 'blur(10px)' : 'none' };
     }
   };
 
@@ -150,7 +228,7 @@ const App: React.FC = () => {
           <p className="hidden md:block text-red-400 text-[10px] font-black uppercase tracking-[0.4em] opacity-90">Clear the wall to see the truth</p>
         </div>
         
-        <div className="flex items-center gap-4 md:gap-8 bg-black/80 px-6 md:px-10 py-3 rounded-2xl border border-white/20 backdrop-blur-3xl shadow-2xl">
+        <div className="flex items-center gap-4 md:gap-8 bg-black/80 px-6 md:px-10 py-3 rounded-2xl border border-white/20 backdrop-blur-3xl shadow-2xl transition-opacity duration-500" style={{ opacity: status === GameStatus.IDLE ? 0 : 1 }}>
           <div className="flex flex-col items-center">
             <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Time</span>
             <span className={`text-xl md:text-3xl font-mono font-black tabular-nums ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
@@ -176,7 +254,7 @@ const App: React.FC = () => {
           className="relative h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Background Layer - Hidden at the start (IDLE state) */}
+          {/* Background Layer */}
           <div 
             className={`absolute inset-0 transition-all duration-1000 ease-in-out ${status === GameStatus.IDLE ? 'opacity-0 scale-125' : 'opacity-100'}`} 
             style={{ 
@@ -204,6 +282,15 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Spawning Overlay Message */}
+      {status === GameStatus.SPAWNING && (
+        <div className="fixed inset-0 z-[2500] pointer-events-none flex items-center justify-center">
+          <div className="text-6xl md:text-9xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_10px_30px_rgba(0,0,0,1)] animate-pulse">
+            Ready?
+          </div>
+        </div>
+      )}
 
       {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
