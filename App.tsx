@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GameStatus, AppleData } from './types';
 import { GAME_DURATION } from './constants';
 import Apple from './components/Apple';
@@ -19,67 +19,71 @@ const App: React.FC = () => {
 
   // Procedural Sound Generator
   const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'spawn') => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    const ctx = audioCtxRef.current;
-    if (ctx.state === 'suspended') ctx.resume();
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    const now = ctx.currentTime;
+      const now = ctx.currentTime;
 
-    switch (type) {
-      case 'pop':
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.start(now);
-        osc.stop(now + 0.1);
-        break;
-      case 'spawn':
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(200 + Math.random() * 200, now);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-        osc.start(now);
-        osc.stop(now + 0.05);
-        break;
-      case 'start':
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        osc.start(now);
-        osc.stop(now + 0.4);
-        break;
-      case 'win':
-        [523.25, 659.25, 783.99].forEach((freq, i) => {
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.connect(g); g.connect(ctx.destination);
-          o.frequency.setValueAtTime(freq, now + i * 0.1);
-          g.gain.setValueAtTime(0.2, now + i * 0.1);
-          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
-          o.start(now + i * 0.1);
-          o.stop(now + i * 0.1 + 0.3);
-        });
-        break;
-      case 'lose':
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.linearRampToValueAtTime(50, now + 0.5);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
-        osc.start(now);
-        osc.stop(now + 0.5);
-        break;
+      switch (type) {
+        case 'pop':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450 + Math.random() * 100, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.12);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+          break;
+        case 'spawn':
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(200 + Math.random() * 200, now);
+          gain.gain.setValueAtTime(0.03, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+          break;
+        case 'start':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(600, now + 0.5);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+          break;
+        case 'win':
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.frequency.setValueAtTime(freq, now + i * 0.1);
+            g.gain.setValueAtTime(0.2, now + i * 0.1);
+            g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.4);
+            o.start(now + i * 0.1);
+            o.stop(now + i * 0.1 + 0.4);
+          });
+          break;
+        case 'lose':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, now);
+          osc.frequency.linearRampToValueAtTime(40, now + 0.8);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
+          osc.start(now);
+          osc.stop(now + 0.8);
+          break;
+      }
+    } catch (e) {
+      console.warn("Audio playback failed", e);
     }
   };
 
@@ -107,8 +111,9 @@ const App: React.FC = () => {
       z: Math.random() * 400 - 150,
       size: isMobile ? (45 + Math.random() * 20) : (isTablet ? 55 + Math.random() * 25 : 75 + Math.random() * 30),
       rotation: Math.random() * 360,
-      // If spawning sequence, stagger based on index later. Otherwise small random delay.
-      delay: isSpawnSequence ? 0 : Math.random() * 0.5,
+      delay: isSpawnSequence ? 0 : Math.random() * 0.3,
+      color: Math.random() > 0.25 ? 'red' : 'green',
+      variationSeed: Math.random(),
     };
   }, []);
 
@@ -120,18 +125,16 @@ const App: React.FC = () => {
     setFeedback(null);
 
     const initialBatch: AppleData[] = [];
-    const spawnDuration = 1.5; // seconds for all to appear
+    const spawnDuration = 1.8; 
     
     for (let i = 0; i < INITIAL_SCREEN_APPLES; i++) {
       const apple = createApple(`apple-${i}-${Date.now()}`, true);
-      // stagger the delay over the spawn duration
       apple.delay = (i / INITIAL_SCREEN_APPLES) * spawnDuration;
       initialBatch.push(apple);
     }
     
     setApples(initialBatch);
 
-    // After animation finishes, start the actual gameplay
     setTimeout(() => {
       setStatus(GameStatus.PLAYING);
     }, (spawnDuration + 0.5) * 1000);
@@ -152,7 +155,11 @@ const App: React.FC = () => {
 
     setApples(prev => {
       const remaining = prev.filter(apple => apple.id !== id);
-      const spawnCount = Math.random() > 0.6 ? 2 : 1;
+      // Spawn slightly fewer than we pop to gradually reduce density as reveal happens, 
+      // but keep enough to maintain the challenge.
+      const spawnChance = Math.random();
+      const spawnCount = spawnChance > 0.7 ? 2 : (spawnChance > 0.3 ? 1 : 0);
+      
       const newSpawn: AppleData[] = [];
       for(let i = 0; i < spawnCount; i++) {
         newSpawn.push(createApple(`apple-new-${Date.now()}-${i}`));
@@ -187,8 +194,8 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? `The user cleared a massive wall of ${WIN_TARGET} apples. Congratulate them on revealing the hidden orchard master in a witty way.`
-            : `The user only cleared ${score} out of ${WIN_TARGET} apples. Give a funny, rustic encouragement.`;
+            ? `The user successfully revealed the photo behind the apples in Apple Harvest. Congratulate them on their harvest skills and clear sight.`
+            : `The user only cleared ${score} apples and couldn't fully reveal the photo in Apple Harvest. Give a funny, rustic encouragement to try again.`;
             
           const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -196,25 +203,41 @@ const App: React.FC = () => {
           });
           setFeedback(response.text ?? null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "You've cleared the orchard wall!" : "The apples are still winning...");
+          setFeedback(status === GameStatus.WON ? "You've successfully revealed the orchard's secret!" : "The harvest season isn't over yet. Keep picking!");
         }
       };
       generateMessage();
     }
   }, [status, score]);
 
+  // Progressive Reveal logic: Photo becomes visible as score increases
+  const bgRevealProgress = useMemo(() => {
+    if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) return 0;
+    if (status === GameStatus.WON) return 1;
+    return Math.min(score / WIN_TARGET, 1);
+  }, [score, status]);
+
   const getBgConfig = () => {
+    // Hidden at the very start
+    if (status === GameStatus.IDLE || status === GameStatus.SPAWNING) {
+      return { scale: 1.1, z: -150, blur: 'none', opacity: 0, brightness: 0 };
+    }
+    
+    const baseBlur = deviceType === 'mobile' ? 15 : 25;
+    const currentBlur = Math.max(0, baseBlur * (1 - bgRevealProgress));
+    const currentBrightness = 0.3 + (bgRevealProgress * 0.7);
+
     switch(deviceType) {
       case 'mobile':
-        return { scale: 1.15, z: -100, blur: (status === GameStatus.PLAYING || status === GameStatus.SPAWNING) ? 'blur(8px)' : 'none' };
+        return { scale: 1.15, z: -100, blur: `${currentBlur}px`, opacity: bgRevealProgress > 0 ? 1 : 0, brightness: currentBrightness };
       case 'tablet':
-        return { scale: 0.9, z: -30, blur: (status === GameStatus.PLAYING || status === GameStatus.SPAWNING) ? 'blur(6px)' : 'none' };
+        return { scale: 1.0, z: -50, blur: `${currentBlur}px`, opacity: bgRevealProgress > 0 ? 1 : 0, brightness: currentBrightness };
       default:
-        return { scale: 1.25, z: -150, blur: (status === GameStatus.PLAYING || status === GameStatus.SPAWNING) ? 'blur(10px)' : 'none' };
+        return { scale: 1.25, z: -200, blur: `${currentBlur}px`, opacity: bgRevealProgress > 0 ? 1 : 0, brightness: currentBrightness };
     }
   };
 
-  const { scale: bgScale, z: bgZ, blur: bgBlur } = getBgConfig();
+  const { scale: bgScale, z: bgZ, blur: bgBlur, opacity: bgOpacity, brightness: bgBrightness } = getBgConfig();
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden font-sans select-none touch-none">
@@ -223,23 +246,23 @@ const App: React.FC = () => {
       <div className="fixed top-0 left-0 w-full z-[2000] p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 bg-gradient-to-b from-black/95 via-black/40 to-transparent pointer-events-none safe-top">
         <div className="flex flex-col items-center md:items-start drop-shadow-lg">
           <h1 className="text-white text-2xl md:text-3xl font-black tracking-tighter">
-            APPLE <span className="text-red-500">CURTAIN</span>
+            APPLE <span className="text-red-500">HARVEST</span>
           </h1>
-          <p className="hidden md:block text-red-400 text-[10px] font-black uppercase tracking-[0.4em] opacity-90">Clear the wall to see the truth</p>
+          <p className="hidden md:block text-red-400 text-[10px] font-black uppercase tracking-[0.4em] opacity-90">Pop apples to reveal the view</p>
         </div>
         
-        <div className="flex items-center gap-4 md:gap-8 bg-black/80 px-6 md:px-10 py-3 rounded-2xl border border-white/20 backdrop-blur-3xl shadow-2xl transition-opacity duration-500" style={{ opacity: status === GameStatus.IDLE ? 0 : 1 }}>
+        <div className="flex items-center gap-4 md:gap-8 bg-black/80 px-6 md:px-10 py-3 rounded-2xl border border-white/20 backdrop-blur-3xl shadow-2xl transition-all duration-500" style={{ opacity: status === GameStatus.IDLE ? 0 : 1 }}>
           <div className="flex flex-col items-center">
             <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Time</span>
-            <span className={`text-xl md:text-3xl font-mono font-black tabular-nums ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+            <span className={`text-xl md:text-3xl font-mono font-black tabular-nums transition-colors ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
               :{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
             </span>
           </div>
           <div className="w-px h-10 bg-white/20"></div>
           <div className="flex flex-col items-center">
-            <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Harvested</span>
+            <span className="text-white/60 text-[8px] md:text-[9px] uppercase font-black tracking-widest">Progress</span>
             <span className="text-xl md:text-3xl font-mono font-black tabular-nums text-green-400">
-              {score}<span className="text-sm text-white/30 ml-1">/ {WIN_TARGET}</span>
+              {Math.floor(bgRevealProgress * 100)}<span className="text-sm text-white/30 ml-1">%</span>
             </span>
           </div>
         </div>
@@ -248,19 +271,20 @@ const App: React.FC = () => {
       {/* 3D Game Perspective Engine */}
       <div 
         className="relative w-full h-full overflow-hidden"
-        style={{ perspective: deviceType === 'mobile' ? '600px' : '1000px', perspectiveOrigin: '50% 50%' }}
+        style={{ perspective: deviceType === 'mobile' ? '600px' : '1200px', perspectiveOrigin: '50% 50%' }}
       >
         <div 
           className="relative h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Background Layer */}
+          {/* Background Layer - Progressive reveal based on score */}
           <div 
-            className={`absolute inset-0 transition-all duration-1000 ease-in-out ${status === GameStatus.IDLE ? 'opacity-0 scale-125' : 'opacity-100'}`} 
+            className="absolute inset-0 transition-all duration-700 ease-out pointer-events-none" 
             style={{ 
               transform: `translate3d(0,0,${bgZ}px) scale(${bgScale})`,
               transformOrigin: 'center center',
-              filter: bgBlur
+              filter: `blur(${bgBlur}) brightness(${bgBrightness})`,
+              opacity: bgOpacity
             }}
           >
             <img 
@@ -287,7 +311,7 @@ const App: React.FC = () => {
       {status === GameStatus.SPAWNING && (
         <div className="fixed inset-0 z-[2500] pointer-events-none flex items-center justify-center">
           <div className="text-6xl md:text-9xl font-black text-white italic tracking-tighter uppercase drop-shadow-[0_10px_30px_rgba(0,0,0,1)] animate-pulse">
-            Ready?
+            READY?
           </div>
         </div>
       )}
@@ -295,42 +319,43 @@ const App: React.FC = () => {
       {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-6 transition-all duration-700">
-          <div className="bg-gradient-to-br from-neutral-900 to-black p-10 md:p-14 rounded-[4rem] shadow-2xl border border-white/10 max-w-sm md:max-w-md w-full transform transition-all text-center">
+          <div className="bg-gradient-to-br from-neutral-900 to-black p-10 md:p-14 rounded-[3.5rem] shadow-2xl border border-white/10 max-w-sm md:max-w-md w-full transform transition-all text-center">
             {status === GameStatus.IDLE ? (
               <>
-                <div className="w-32 h-32 bg-gradient-to-br from-red-600 to-red-950 rounded-[3rem] mx-auto mb-10 flex items-center justify-center shadow-[0_20px_50px_rgba(220,38,38,0.4)]">
-                   <div className="w-20 h-20 bg-white rounded-full relative shadow-inner overflow-hidden">
-                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-4 h-10 bg-amber-900 rounded-full"></div>
-                      <div className="absolute top-2 left-2 w-10 h-10 bg-red-100 rounded-full blur-xl opacity-50"></div>
+                <div className="w-28 h-28 bg-gradient-to-br from-red-600 to-red-950 rounded-[2.5rem] mx-auto mb-10 flex items-center justify-center shadow-[0_20px_50px_rgba(220,38,38,0.4)] relative">
+                   <div className="w-16 h-16 bg-white rounded-full relative shadow-inner overflow-hidden">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-3 h-8 bg-amber-900 rounded-full"></div>
+                      <div className="absolute top-2 left-2 w-8 h-8 bg-red-100 rounded-full blur-xl opacity-50"></div>
                    </div>
+                   <div className="absolute -top-4 -right-2 text-4xl animate-bounce">🍎</div>
                 </div>
-                <h2 className="text-5xl font-black text-white mb-6 tracking-tighter uppercase leading-none italic">ORIGINAL<br/>HARVEST</h2>
-                <p className="text-white/50 mb-12 font-medium leading-relaxed px-2 text-lg">
-                  A dense wall of apples hides the guardian. Every one you clear, <span className="text-red-400 font-bold">more appear</span>. Reach {WIN_TARGET} clears to win!
+                <h2 className="text-5xl font-black text-white mb-6 tracking-tighter uppercase leading-none italic">APPLE<br/>HARVEST</h2>
+                <p className="text-white/50 mb-10 font-medium leading-relaxed px-2 text-lg">
+                  Pop the dense wall of apples to reveal the hidden scene. Harvest <span className="text-red-400 font-bold">{WIN_TARGET}</span> pieces to clear the view!
                 </p>
               </>
             ) : status === GameStatus.WON ? (
               <>
-                <div className="text-9xl mb-8 animate-bounce">🍎</div>
+                <div className="text-8xl mb-8 animate-bounce">✨</div>
                 <h2 className="text-5xl font-black text-green-400 mb-4 italic uppercase tracking-tighter">SUCCESS!</h2>
                 <p className="text-white/80 text-xl font-bold mb-8">The Orchard is Revealed</p>
-                {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-8 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
+                {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-6 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
               </>
             ) : (
               <>
-                <div className="text-9xl mb-8 opacity-40">🍏</div>
-                <h2 className="text-5xl font-black text-red-500 mb-4 uppercase italic tracking-tighter">OUT OF TIME</h2>
-                <p className="text-white/80 text-xl font-bold mb-8">Cleared {score} / {WIN_TARGET}</p>
-                {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-8 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
+                <div className="text-8xl mb-8 opacity-40">⏳</div>
+                <h2 className="text-5xl font-black text-red-500 mb-4 uppercase italic tracking-tighter">TIME'S UP</h2>
+                <p className="text-white/80 text-xl font-bold mb-8">Cleared {score} / {WIN_TARGET} apples</p>
+                {feedback && <div className="text-white/60 italic mb-10 bg-white/5 p-6 rounded-[2rem] border border-white/5 text-sm leading-relaxed">"{feedback}"</div>}
               </>
             )}
 
             <button
               onClick={initGame}
-              className="group relative w-full py-8 px-12 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all shadow-[0_20px_40px_rgba(220,38,38,0.3)] active:scale-95 text-3xl uppercase tracking-[0.2em] overflow-hidden"
+              className="group relative w-full py-7 px-10 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2rem] transition-all shadow-[0_20px_40px_rgba(220,38,38,0.3)] active:scale-95 text-2xl uppercase tracking-[0.2em] overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-              <span className="relative drop-shadow-2xl">{status === GameStatus.IDLE ? 'START HARVEST' : 'RETRY'}</span>
+              <span className="relative drop-shadow-2xl">{status === GameStatus.IDLE ? 'START PICKING' : 'TRY AGAIN'}</span>
             </button>
           </div>
         </div>

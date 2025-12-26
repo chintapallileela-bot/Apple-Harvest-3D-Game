@@ -14,4 +14,6 @@ export interface AppleData {
   size: number;
   rotation: number;
   delay: number;
+  color: 'red' | 'green';
+  variationSeed: number;
 }
