@@ -5,7 +5,7 @@ import Apple from './components/Apple';
 import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
-const INITIAL_SCREEN_APPLES = 150; // Reduced count to accommodate larger apple sizes
+const INITIAL_SCREEN_APPLES = 150; 
 const WIN_TARGET = 500; 
 const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
@@ -22,6 +22,7 @@ const App: React.FC = () => {
   
   const timerRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const musicIntervalRef = useRef<any>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const bgImageRef = useRef<HTMLImageElement | null>(null);
 
@@ -35,6 +36,49 @@ const App: React.FC = () => {
     
     const heroImg = new Image();
     heroImg.src = HERO_APPLE_IMAGE;
+  }, []);
+
+  // Procedural Background Music Logic
+  const startBgMusic = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    // Upbeat country-style melody: C4, E4, G4, A4, G4, E4
+    const notes = [261.63, 329.63, 392.00, 440.00, 392.00, 329.63];
+    let noteIndex = 0;
+
+    if (musicIntervalRef.current) clearInterval(musicIntervalRef.current);
+
+    musicIntervalRef.current = setInterval(() => {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(notes[noteIndex % notes.length], now);
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.05, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now);
+      osc.stop(now + 0.5);
+      
+      noteIndex++;
+    }, 400); // 400ms per beat for an upbeat tempo
+  }, []);
+
+  const stopBgMusic = useCallback(() => {
+    if (musicIntervalRef.current) {
+      clearInterval(musicIntervalRef.current);
+      musicIntervalRef.current = null;
+    }
   }, []);
 
   // Sound Engine
@@ -211,11 +255,9 @@ const App: React.FC = () => {
       x: Math.random() * 90 + 5,
       y: Math.random() * 90 + 5,
       z: Math.random() * 100 - 50,
-      // Significantly increased apple size based on user request
       size: deviceType === 'mobile' ? (80 + Math.random() * 40) : (120 + Math.random() * 60),
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? 0 : Math.random() * 0.1,
-      // Red apples as requested
       color: 'red', 
       variationSeed: Math.random(),
     };
@@ -268,6 +310,7 @@ const App: React.FC = () => {
 
   const runCountdown = useCallback(() => {
     setStatus(GameStatus.COUNTDOWN);
+    startBgMusic(); // Start rhythmic harvest theme
     let countNum = 3;
     setCountdown(countNum);
     playSound('countdown');
@@ -285,7 +328,7 @@ const App: React.FC = () => {
         setStatus(GameStatus.PLAYING);
       }
     }, 1000);
-  }, []);
+  }, [startBgMusic]);
 
   const initGame = useCallback(() => {
     playSound('click');
@@ -310,11 +353,12 @@ const App: React.FC = () => {
 
   const quitToHome = useCallback(() => {
     playSound('click');
+    stopBgMusic(); // Kill music on stop
     setStatus(GameStatus.IDLE);
     setApples([]);
     setParticles([]);
     clearMask();
-  }, [clearMask]);
+  }, [clearMask, stopBgMusic]);
 
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
@@ -328,18 +372,21 @@ const App: React.FC = () => {
         setScore(s => {
           const next = s + 1;
           playSound('chime', next);
-          if (next >= WIN_TARGET) setStatus(GameStatus.WON);
+          if (next >= WIN_TARGET) {
+            setStatus(GameStatus.WON);
+            stopBgMusic();
+            playSound('win');
+          }
           return next;
         });
         
         const newOnes = [];
-        // Keep the field populated
         if (Math.random() > 0.2) newOnes.push(createApple(`apple-new-${Date.now()}`));
         return [...prev.filter(a => a.id !== id), ...newOnes];
       }
       return prev;
     });
-  }, [status, createApple, triggerBurst]);
+  }, [status, createApple, triggerBurst, stopBgMusic]);
 
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
@@ -347,6 +394,7 @@ const App: React.FC = () => {
         setTimeLeft(prev => {
           if (prev <= 1) {
             setStatus(GameStatus.LOST);
+            stopBgMusic();
             playSound('lose');
             return 0;
           }
@@ -357,7 +405,7 @@ const App: React.FC = () => {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [status]);
+  }, [status, stopBgMusic]);
 
   useEffect(() => {
     if (status === GameStatus.WON || status === GameStatus.LOST) {
@@ -406,7 +454,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Stop Button - Violet variant */}
+      {/* Floating Stop Button */}
       {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
         <button 
           onPointerDown={quitToHome}
@@ -420,7 +468,6 @@ const App: React.FC = () => {
 
       {/* Main Render Plane */}
       <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
-        {/* The revealed background */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img 
             src={BG_URL} 
@@ -429,17 +476,10 @@ const App: React.FC = () => {
           />
         </div>
 
-        {/* The fog/mask layer */}
-        <div 
-          className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000"
-        >
-          <canvas 
-            ref={maskCanvasRef} 
-            className="w-full h-full"
-          />
+        <div className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000">
+          <canvas ref={maskCanvasRef} className="w-full h-full" />
         </div>
 
-        {/* Game objects layer */}
         <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
           {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
           {particles.map(p => <Particle key={p.id} data={p} />)}
@@ -455,7 +495,6 @@ const App: React.FC = () => {
               ${countdown === 'GO!' ? 'text-red-500 drop-shadow-[0_0_100px_rgba(220,38,38,0.9)]' : 'text-white drop-shadow-[0_20px_60px_rgba(255,255,255,0.4)]'}
               animate-[countdown-pop_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]
             `}
-            style={{ width: '100%', height: '100%' }}
           >
             {countdown}
           </div>
@@ -466,9 +505,7 @@ const App: React.FC = () => {
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-6">
           <div className="bg-neutral-900/80 p-12 md:p-16 rounded-[4rem] border border-white/10 max-w-lg w-full text-center shadow-[0_0_200px_rgba(255,0,0,0.1)] overflow-hidden relative backdrop-saturate-150">
-            
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/40 to-transparent"></div>
-            
             {status === GameStatus.IDLE ? (
               <>
                 <div className="relative w-full h-56 flex items-center justify-center mb-10">
