@@ -454,12 +454,16 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Countdown Overlay */}
+      {/* Countdown Overlay - Perfectly Center Aligned */}
       {status === GameStatus.COUNTDOWN && (
-        <div className="fixed inset-0 z-[2500] flex items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm overflow-hidden">
           <div 
             key={countdown}
-            className="text-[18rem] md:text-[25rem] font-black text-white italic drop-shadow-[0_20px_60px_rgba(220,38,38,0.8)] animate-[countdown-pop_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]"
+            className={`text-[20rem] md:text-[30rem] font-black italic leading-none flex items-center justify-center text-center
+              ${countdown === 'GO!' ? 'text-red-500 drop-shadow-[0_0_100px_rgba(220,38,38,0.9)]' : 'text-white drop-shadow-[0_20px_60px_rgba(255,255,255,0.4)]'}
+              animate-[countdown-pop_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]
+            `}
+            style={{ width: '100%', height: '100%' }}
           >
             {countdown}
           </div>
