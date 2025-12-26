@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Procedural Sound Generator
-  const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'spawn') => {
+  const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'spawn' | 'chime', currentScore?: number) => {
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -36,6 +36,29 @@ const App: React.FC = () => {
       const now = ctx.currentTime;
 
       switch (type) {
+        case 'chime': {
+          const progress = Math.min((currentScore || 0) / WIN_TARGET, 1);
+          const baseFreq = 440 + (progress * 880); // Ascending from A4 to A5/A6 range
+          
+          // Chime harmonic structure
+          [1, 2.1, 3.5].forEach((mult, i) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(baseFreq * mult, now);
+            o.connect(g);
+            g.connect(ctx.destination);
+            
+            // Prominence increases with progress
+            const maxVol = 0.05 + (progress * 0.15);
+            g.gain.setValueAtTime(maxVol / (i + 1), now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.4 + (i * 0.1));
+            
+            o.start(now);
+            o.stop(now + 0.6);
+          });
+          break;
+        }
         case 'pop':
           osc.type = 'sine';
           osc.frequency.setValueAtTime(450 + Math.random() * 100, now);
@@ -184,8 +207,12 @@ const App: React.FC = () => {
     }
 
     playSound('pop');
+    
     setScore(prev => {
       const newScore = prev + 1;
+      // Play ascending chime based on progress
+      playSound('chime', newScore);
+
       if (newScore >= WIN_TARGET) {
         setStatus(GameStatus.WON);
         playSound('win');
