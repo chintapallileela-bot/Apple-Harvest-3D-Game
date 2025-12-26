@@ -5,7 +5,7 @@ import Apple from './components/Apple';
 import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
-const INITIAL_SCREEN_APPLES = 300; 
+const INITIAL_SCREEN_APPLES = 150; // Reduced count to accommodate larger apple sizes
 const WIN_TARGET = 500; 
 const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
@@ -211,10 +211,12 @@ const App: React.FC = () => {
       x: Math.random() * 90 + 5,
       y: Math.random() * 90 + 5,
       z: Math.random() * 100 - 50,
-      size: deviceType === 'mobile' ? (45 + Math.random() * 20) : (65 + Math.random() * 20),
+      // Significantly increased apple size based on user request
+      size: deviceType === 'mobile' ? (80 + Math.random() * 40) : (120 + Math.random() * 60),
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? 0 : Math.random() * 0.1,
-      color: Math.random() > 0.05 ? 'red' : 'green', 
+      // Red apples as requested
+      color: 'red', 
       variationSeed: Math.random(),
     };
   }, [deviceType]);
@@ -252,7 +254,7 @@ const App: React.FC = () => {
         id: `p-${Date.now()}-${i}`,
         x: apple.x, y: apple.y, z: apple.z,
         vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        color: apple.color === 'red' ? '#ef4444' : '#bef264',
+        color: '#ef4444',
         type: Math.random() > 0.5 ? 'leaf' : 'dust',
         size: 8 + Math.random() * 10,
         rotation: Math.random() * 360,
@@ -331,6 +333,7 @@ const App: React.FC = () => {
         });
         
         const newOnes = [];
+        // Keep the field populated
         if (Math.random() > 0.2) newOnes.push(createApple(`apple-new-${Date.now()}`));
         return [...prev.filter(a => a.id !== id), ...newOnes];
       }
@@ -403,7 +406,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Stop Button (Fixed for Quick Access) */}
+      {/* Floating Stop Button */}
       {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
         <button 
           onPointerDown={quitToHome}
@@ -417,17 +420,18 @@ const App: React.FC = () => {
 
       {/* Main Render Plane */}
       <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
+        {/* The revealed background */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img 
             src={BG_URL} 
             className="w-full h-full object-cover" 
-            alt="Secret"
+            alt="Secret Background"
           />
         </div>
 
+        {/* The fog/mask layer */}
         <div 
           className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000"
-          style={{ opacity: 1 }}
         >
           <canvas 
             ref={maskCanvasRef} 
@@ -435,13 +439,14 @@ const App: React.FC = () => {
           />
         </div>
 
+        {/* Game objects layer */}
         <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
           {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
           {particles.map(p => <Particle key={p.id} data={p} />)}
         </div>
       </div>
 
-      {/* Countdown Overlay - Perfectly Center Aligned */}
+      {/* Countdown Overlay */}
       {status === GameStatus.COUNTDOWN && (
         <div className="fixed inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm overflow-hidden">
           <div 
