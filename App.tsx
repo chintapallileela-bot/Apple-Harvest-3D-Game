@@ -8,6 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 const INITIAL_SCREEN_APPLES = 300; 
 const WIN_TARGET = 500; 
 const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
+const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -24,13 +25,16 @@ const App: React.FC = () => {
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const bgImageRef = useRef<HTMLImageElement | null>(null);
 
-  // Preload background image
+  // Preload background image and hero apple
   useEffect(() => {
     const img = new Image();
     img.src = BG_URL;
     img.onload = () => {
       bgImageRef.current = img;
     };
+    
+    const heroImg = new Image();
+    heroImg.src = HERO_APPLE_IMAGE;
   }, []);
 
   // Sound Engine
@@ -46,7 +50,6 @@ const App: React.FC = () => {
 
       switch (type) {
         case 'click': {
-          // Sharp, clean UI click sound
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -90,7 +93,6 @@ const App: React.FC = () => {
           break;
         }
         case 'start': {
-          // Impactful "Go" sound
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -105,7 +107,6 @@ const App: React.FC = () => {
           break;
         }
         case 'countdown': {
-          // Mid-range beep for countdown
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -265,16 +266,16 @@ const App: React.FC = () => {
 
   const runCountdown = useCallback(() => {
     setStatus(GameStatus.COUNTDOWN);
-    let count = 3;
-    setCountdown(count);
+    let countNum = 3;
+    setCountdown(countNum);
     playSound('countdown');
 
     const interval = setInterval(() => {
-      count -= 1;
-      if (count > 0) {
-        setCountdown(count);
+      countNum -= 1;
+      if (countNum > 0) {
+        setCountdown(countNum);
         playSound('countdown');
-      } else if (count === 0) {
+      } else if (countNum === 0) {
         setCountdown('GO!');
         playSound('start');
       } else {
@@ -285,7 +286,6 @@ const App: React.FC = () => {
   }, []);
 
   const initGame = useCallback(() => {
-    // Play sound immediately on button click
     playSound('click');
     
     clearMask();
@@ -376,18 +376,6 @@ const App: React.FC = () => {
 
   const revealPercent = Math.min(Math.round((score / WIN_TARGET) * 100), 100);
 
-  const heroAppleData: AppleData = {
-    id: 'hero-apple',
-    x: 50,
-    y: 50,
-    z: 100,
-    size: 240,
-    rotation: 0,
-    delay: 0,
-    color: 'red',
-    variationSeed: 0.5,
-  };
-
   return (
     <div className="relative w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
@@ -458,8 +446,11 @@ const App: React.FC = () => {
 
       {/* Countdown Overlay */}
       {status === GameStatus.COUNTDOWN && (
-        <div className="fixed inset-0 z-[2500] flex items-center justify-center pointer-events-none">
-          <div className="text-[18rem] md:text-[24rem] font-black text-white italic drop-shadow-[0_20px_50px_rgba(220,38,38,0.8)] animate-ping">
+        <div className="fixed inset-0 z-[2500] flex items-center justify-center pointer-events-none bg-black/20">
+          <div 
+            key={countdown}
+            className="text-[20rem] md:text-[28rem] font-black text-white italic drop-shadow-[0_20px_50px_rgba(220,38,38,0.9)] animate-[apple-pop_0.5s_ease-out_forwards]"
+          >
             {countdown}
           </div>
         </div>
@@ -474,11 +465,17 @@ const App: React.FC = () => {
             
             {status === GameStatus.IDLE ? (
               <>
-                <div className="relative w-full h-48 flex items-center justify-center mb-12">
-                   <div className="relative w-48 h-48 animate-bounce" style={{ perspective: '1000px' }}>
-                      <Apple data={heroAppleData} onClick={() => {}} />
+                <div className="relative w-full h-56 flex items-center justify-center mb-10">
+                   <div className="relative w-64 h-64 animate-[bounce_3s_infinite_ease-in-out]">
+                      <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full animate-pulse"></div>
+                      <img 
+                        src={HERO_APPLE_IMAGE} 
+                        className="w-full h-full object-contain rounded-full border-4 border-white/10 shadow-2xl drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]" 
+                        alt="Hero Apple"
+                      />
                    </div>
-                   <div className="absolute -top-4 -right-12 text-4xl animate-pulse">✨</div>
+                   <div className="absolute -top-4 -right-8 text-5xl animate-pulse">✨</div>
+                   <div className="absolute -bottom-8 -left-8 text-3xl animate-pulse opacity-50">✨</div>
                 </div>
                 <h2 className="text-5xl font-black text-white mb-6 italic tracking-tighter leading-none uppercase">APPLE HARVEST</h2>
                 <p className="text-white/60 mb-12 text-xl font-medium leading-relaxed">
@@ -522,7 +519,7 @@ const App: React.FC = () => {
                 <div className="flex flex-col gap-4">
                   <button
                     onPointerDown={initGame}
-                    className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em]"
+                    className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em] shadow-[0_15px_30px_rgba(220,38,38,0.4)]"
                   >
                     RETRY HARVEST
                   </button>
