@@ -2,7 +2,7 @@
 import React from 'react';
 
 export const GAME_DURATION = 60; // 60 seconds
-export const TOTAL_APPLES = 450; // Increased to fill the single 100vh background
+export const TOTAL_APPLES = 600; // Increased for dense coverage
 
 export const AppleIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg 
