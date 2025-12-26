@@ -18,23 +18,23 @@ const App: React.FC = () => {
     const newApples: AppleData[] = [];
     
     // Distribution logic adapted for 3D and responsive filling
-    const columns = isMobile ? 8 : 12;
+    const columns = isMobile ? 10 : 15;
     const rows = Math.ceil(TOTAL_APPLES / columns);
     
     for (let i = 0; i < TOTAL_APPLES; i++) {
       const col = i % columns;
       const row = Math.floor(i / columns);
       
-      const baseX = (col * (100 / columns)) + (isMobile ? 6 : 4);
-      const baseY = (row * (100 / rows)) + 1;
+      const baseX = (col * (100 / columns)) + (isMobile ? 5 : 3);
+      const baseY = (row * (100 / rows)) + 2;
       
       newApples.push({
         id: `apple-${i}`,
-        // Mobile-aware X/Y boundaries
-        x: Math.min(94, Math.max(6, baseX + (Math.random() * (isMobile ? 10 : 6) - (isMobile ? 5 : 3)))),
-        y: Math.min(99, Math.max(1, baseY + (Math.random() * 4 - 2))),
-        z: Math.random() * 250 - 125, // More pronounced Z depth
-        size: isMobile ? (38 + Math.random() * 15) : (30 + Math.random() * 12), // Larger apples on mobile for easier tapping
+        // Mobile-aware X/Y boundaries for single screen
+        x: Math.min(96, Math.max(4, baseX + (Math.random() * (isMobile ? 8 : 4) - (isMobile ? 4 : 2)))),
+        y: Math.min(98, Math.max(2, baseY + (Math.random() * 4 - 2))),
+        z: Math.random() * 250 - 125,
+        size: isMobile ? (38 + Math.random() * 15) : (30 + Math.random() * 12),
         rotation: Math.random() * 360,
         delay: Math.random() * 2,
       });
@@ -132,26 +132,19 @@ const App: React.FC = () => {
 
       {/* 3D Game Perspective Engine */}
       <div 
-        className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide touch-auto"
+        className="relative w-full h-full overflow-hidden scrollbar-hide touch-auto"
         style={{ perspective: '1000px', perspectiveOrigin: '50% 50%' }}
       >
         <div 
-          className="relative min-h-[200%] w-full"
+          className="relative h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Background Images - Set for mobile/tablet view with high-quality covering */}
-          <div className="w-full h-[100dvh]" style={{ transform: 'translate3d(0,0,-100px) scale(1.2)' }}>
-            <img 
-              src="https://i.postimg.cc/XYvSRPWd/Avatar1.jpg" 
-              className="bg-3d-image" 
-              alt="Orchard Scene 1"
-            />
-          </div>
+          {/* Background Image - Only one used now */}
           <div className="w-full h-[100dvh]" style={{ transform: 'translate3d(0,0,-100px) scale(1.2)' }}>
             <img 
               src="https://i.postimg.cc/tCCMJVcV/Avatar2.jpg" 
               className="bg-3d-image" 
-              alt="Orchard Scene 2"
+              alt="Orchard Scene"
             />
           </div>
 
@@ -180,7 +173,7 @@ const App: React.FC = () => {
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tighter">APPLE<br/>HARVEST</h2>
                 <p className="text-white/60 mb-10 font-medium leading-relaxed">
-                  A 3D orchard awaits. Harvest <span className="text-white font-bold">{TOTAL_APPLES}</span> apples across the dual landscapes. Swipe down to discover them all!
+                  A 3D orchard awaits. Harvest all <span className="text-white font-bold">{TOTAL_APPLES}</span> apples to reveal the scenery hidden behind them!
                 </p>
               </>
             ) : status === GameStatus.WON ? (
@@ -211,12 +204,15 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Scrolling Indicator for Mobile */}
-      <div className="fixed bottom-10 z-20 flex flex-col items-center pointer-events-none opacity-50 safe-bottom">
-        <div className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center p-1 backdrop-blur-md">
-          <div className="w-1.5 h-3 bg-red-500 rounded-full animate-bounce"></div>
+      {/* Tapping Hint for Mobile */}
+      {status === GameStatus.PLAYING && apples.length > (TOTAL_APPLES - 5) && (
+        <div className="fixed bottom-10 z-20 flex flex-col items-center pointer-events-none opacity-50 safe-bottom">
+          <div className="w-10 h-10 border-2 border-white/40 rounded-full flex justify-center items-center backdrop-blur-md">
+            <div className="w-4 h-4 bg-white/20 rounded-full animate-ping"></div>
+          </div>
+          <span className="text-white text-[10px] font-black mt-2 tracking-widest uppercase">Tap Apples</span>
         </div>
-      </div>
+      )}
     </div>
   );
 };
