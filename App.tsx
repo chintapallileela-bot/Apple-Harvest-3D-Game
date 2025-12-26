@@ -46,11 +46,14 @@ const App: React.FC = () => {
 
       switch (type) {
         case 'click': {
+          // Sharp, clean UI click sound
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.frequency.setValueAtTime(150, now);
-          gain.gain.setValueAtTime(0.1, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(10, now + 0.1);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start();
@@ -87,12 +90,13 @@ const App: React.FC = () => {
           break;
         }
         case 'start': {
+          // Impactful "Go" sound
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(440, now);
           osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
-          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.setValueAtTime(0.2, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
           osc.connect(gain);
           gain.connect(ctx.destination);
@@ -101,11 +105,12 @@ const App: React.FC = () => {
           break;
         }
         case 'countdown': {
+          // Mid-range beep for countdown
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(660, now);
-          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.setValueAtTime(0.15, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           osc.connect(gain);
           gain.connect(ctx.destination);
@@ -280,6 +285,9 @@ const App: React.FC = () => {
   }, []);
 
   const initGame = useCallback(() => {
+    // Play sound immediately on button click
+    playSound('click');
+    
     clearMask();
     setStatus(GameStatus.SPAWNING);
     setScore(0);
@@ -404,7 +412,7 @@ const App: React.FC = () => {
             <span className="text-white/30 text-[9px] uppercase font-black">Revealed</span>
             <span className="text-2xl font-mono font-black text-green-400">{revealPercent}%</span>
           </div>
-          {status === GameStatus.PLAYING && (
+          {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN) && (
             <>
               <div className="w-[1px] h-10 bg-white/10"></div>
               <button 
