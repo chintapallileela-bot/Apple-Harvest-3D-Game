@@ -244,24 +244,51 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = 10;
+    const count = 25; // Increased count for better effect
+
+    const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
+
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 70 + Math.random() * 100;
+      const force = 100 + Math.random() * 250;
+      const type = types[Math.floor(Math.random() * types.length)];
+      
+      let color = '#ef4444'; // default red
+      let size = 8 + Math.random() * 10;
+
+      if (type === 'flesh') {
+        color = '#fffbeb'; // cream color
+        size = 12 + Math.random() * 12;
+      } else if (type === 'juice') {
+        color = '#dc2626'; // deep red
+        size = 4 + Math.random() * 8;
+      } else if (type === 'seed') {
+        color = '#451a03'; // brown
+        size = 5 + Math.random() * 5;
+      } else if (type === 'leaf') {
+        color = '#22c55e'; // green
+        size = 10 + Math.random() * 15;
+      }
+
       newParticles.push({
         id: `p-${Date.now()}-${i}`,
-        x: apple.x, y: apple.y, z: apple.z,
-        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        color: '#ef4444',
-        type: Math.random() > 0.5 ? 'leaf' : 'dust',
-        size: 8 + Math.random() * 10,
+        x: apple.x, 
+        y: apple.y, 
+        z: apple.z,
+        vx: Math.cos(angle) * force, 
+        vy: Math.sin(angle) * force,
+        color: color,
+        type: type as any,
+        size: size,
         rotation: Math.random() * 360,
+        spinSpeed: (Math.random() - 0.5) * 20
       });
     }
+
     setParticles(prev => [...prev, ...newParticles]);
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 800);
+    }, 1000); // Slightly longer cleanup for the new animation duration
   }, []);
 
   const runCountdown = useCallback(() => {

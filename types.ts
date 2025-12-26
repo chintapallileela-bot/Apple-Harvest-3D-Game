@@ -27,7 +27,8 @@ export interface ParticleData {
   vx: number;
   vy: number;
   color: string;
-  type: 'seed' | 'leaf' | 'dust';
+  type: 'seed' | 'leaf' | 'dust' | 'juice' | 'flesh';
   size: number;
   rotation: number;
+  spinSpeed: number;
 }
