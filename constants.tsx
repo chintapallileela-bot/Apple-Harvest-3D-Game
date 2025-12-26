@@ -1,8 +1,7 @@
-
 import React from 'react';
 
 export const GAME_DURATION = 60; // 60 seconds
-export const TOTAL_APPLES = 1200; // Significantly increased for a dense "curtain" effect
+export const TOTAL_APPLES = 850; // Balanced count for larger, high-detail 3D apples
 
 export const AppleIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg 

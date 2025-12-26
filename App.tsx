@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameStatus, AppleData } from './types';
 import { GAME_DURATION, TOTAL_APPLES } from './constants';
@@ -11,21 +10,30 @@ const App: React.FC = () => {
   const [apples, setApples] = useState<AppleData[]>([]);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const timerRef = useRef<any>(null);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 768) setDeviceType('mobile');
+      else if (width >= 768 && width <= 1024) setDeviceType('tablet');
+      else setDeviceType('desktop');
+    };
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const initGame = useCallback(() => {
-    const mobile = window.innerWidth < 768;
+    const width = window.innerWidth;
+    const isMobile = width < 768;
+    const isTablet = width >= 768 && width <= 1024;
+    
     const newApples: AppleData[] = [];
     
-    // Grid density adjusted for TOTAL_APPLES (1200)
-    const columns = mobile ? 15 : 25;
+    // Grid density adjusted for TOTAL_APPLES while keeping them large
+    const columns = isMobile ? 12 : (isTablet ? 16 : 22);
     const rows = Math.ceil(TOTAL_APPLES / columns);
     
     const cellWidth = 100 / columns;
@@ -40,13 +48,14 @@ const App: React.FC = () => {
       
       newApples.push({
         id: `apple-${i}`,
-        // Jitter to make it look natural while maintaining full coverage
-        x: Math.min(100, Math.max(0, baseX + (Math.random() * cellWidth - cellWidth / 2) * 1.8)),
-        y: Math.min(100, Math.max(0, baseY + (Math.random() * cellHeight - cellHeight / 2) * 1.8)),
-        z: Math.random() * 200 - 100,
-        size: mobile ? (28 + Math.random() * 12) : (24 + Math.random() * 10), // Slightly smaller to accommodate density
+        // High jitter for an organic pile-up look
+        x: Math.min(100, Math.max(0, baseX + (Math.random() * cellWidth - cellWidth / 2) * 2)),
+        y: Math.min(100, Math.max(0, baseY + (Math.random() * cellHeight - cellHeight / 2) * 2)),
+        z: Math.random() * 300 - 150,
+        // Increased sizes for "big 3D apples"
+        size: isMobile ? (45 + Math.random() * 20) : (isTablet ? 55 + Math.random() * 25 : 60 + Math.random() * 30),
         rotation: Math.random() * 360,
-        delay: Math.random() * 1.5,
+        delay: Math.random() * 2,
       });
     }
     
@@ -95,7 +104,7 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? `Congratulate the user for clearing all ${TOTAL_APPLES} apples and revealing the orchard. Short and sweet.`
+            ? `Congratulate the user for clearing all ${TOTAL_APPLES} jumbo apples and revealing the orchard guardian. Short and punchy.`
             : `User failed. They cleared ${score} apples. Give a funny, short encouragement.`;
             
           const response = await ai.models.generateContent({
@@ -109,21 +118,33 @@ const App: React.FC = () => {
       };
       generateMessage();
     }
-  }, [status, score, timeLeft]);
+  }, [status, score]);
 
-  const bgScale = isMobile ? 1.05 : 1.15;
-  const bgZ = isMobile ? -60 : -100;
+  // Specific transformations for each device to optimize framing
+  const getBgConfig = () => {
+    switch(deviceType) {
+      case 'mobile':
+        return { scale: 1.1, z: -50 };
+      case 'tablet':
+        // Zoom out specifically for tablet to center the human perfectly
+        return { scale: 0.95, z: -20 };
+      default:
+        return { scale: 1.15, z: -100 };
+    }
+  };
+
+  const { scale: bgScale, z: bgZ } = getBgConfig();
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-black overflow-hidden font-sans select-none touch-none">
       
       {/* 3D Glass Header */}
-      <div className="fixed top-0 left-0 w-full z-40 p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none safe-top">
+      <div className="fixed top-0 left-0 w-full z-[1000] p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-2 md:gap-0 bg-gradient-to-b from-black/90 via-black/40 to-transparent pointer-events-none safe-top">
         <div className="flex flex-col items-center md:items-start">
           <h1 className="text-white text-2xl md:text-3xl font-black tracking-tighter drop-shadow-2xl">
-            APPLE <span className="text-red-500">WALL</span>
+            APPLE <span className="text-red-500">3D</span> WALL
           </h1>
-          <p className="hidden md:block text-red-400 text-[9px] font-black uppercase tracking-[0.3em] opacity-80">Extreme Harvest Challenge</p>
+          <p className="hidden md:block text-red-400 text-[9px] font-black uppercase tracking-[0.3em] opacity-80">Mega 3D Harvest</p>
         </div>
         
         <div className="flex items-center gap-4 md:gap-8 bg-black/60 px-5 md:px-8 py-2 md:py-3 rounded-2xl border border-white/10 backdrop-blur-2xl shadow-2xl">
@@ -146,25 +167,29 @@ const App: React.FC = () => {
       {/* 3D Game Perspective Engine */}
       <div 
         className="relative w-full h-full overflow-hidden"
-        style={{ perspective: isMobile ? '800px' : '1200px', perspectiveOrigin: '50% 50%' }}
+        style={{ perspective: deviceType === 'mobile' ? '700px' : '1000px', perspectiveOrigin: '50% 50%' }}
       >
         <div 
           className="relative h-full w-full"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Background Layer */}
+          {/* Background Layer - Reward View */}
           <div 
-            className="absolute inset-0 transition-transform duration-700 ease-out" 
-            style={{ transform: `translate3d(0,0,${bgZ}px) scale(${bgScale})` }}
+            className="absolute inset-0 transition-all duration-1000 ease-out" 
+            style={{ 
+              transform: `translate3d(0,0,${bgZ}px) scale(${bgScale})`,
+              transformOrigin: 'center center'
+            }}
           >
             <img 
               src="https://i.postimg.cc/tCCMJVcV/Avatar2.jpg" 
-              className="w-full h-full object-cover" 
+              className="w-full h-full object-cover transition-opacity duration-1000" 
+              style={{ objectPosition: 'center center' }}
               alt="Orchard Scene"
             />
           </div>
 
-          {/* Denser Interactive Layer */}
+          {/* Denser Interactive Layer - Apple Curtain */}
           <div 
             className="absolute inset-0 pointer-events-auto"
             style={{ transformStyle: 'preserve-3d' }}
@@ -178,42 +203,43 @@ const App: React.FC = () => {
 
       {/* Overlays */}
       {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-3xl p-6 transition-all duration-700">
-          <div className="bg-gradient-to-br from-slate-900 to-black p-8 md:p-12 rounded-[3rem] shadow-2xl border border-white/5 max-w-sm md:max-w-md w-full transform transition-all text-center">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/85 backdrop-blur-3xl p-6 transition-all duration-700">
+          <div className="bg-gradient-to-br from-slate-900 via-black to-slate-900 p-8 md:p-12 rounded-[3.5rem] shadow-2xl border border-white/10 max-w-sm md:max-w-md w-full transform transition-all text-center">
             {status === GameStatus.IDLE ? (
               <>
-                <div className="w-24 h-24 bg-red-600 rounded-[2rem] mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-red-600/30">
-                   <div className="w-14 h-14 bg-white rounded-full relative">
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-6 bg-amber-900 rounded-full"></div>
+                <div className="w-28 h-28 bg-gradient-to-br from-red-500 to-red-900 rounded-[2.5rem] mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-red-600/50">
+                   <div className="w-16 h-16 bg-white rounded-full relative shadow-inner">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-3 h-8 bg-amber-900 rounded-full"></div>
+                      <div className="absolute -top-5 left-[60%] w-10 h-6 bg-green-500 rounded-full rotate-[20deg]"></div>
                    </div>
                 </div>
-                <h2 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase leading-none">Apple<br/>Wall</h2>
-                <p className="text-white/60 mb-10 font-medium leading-relaxed">
-                  A dense curtain of <span className="text-white font-bold">{TOTAL_APPLES}</span> apples hides the view. Can you clear them all in time?
+                <h2 className="text-5xl font-black text-white mb-4 tracking-tighter uppercase leading-none italic">3D<br/>HARVEST</h2>
+                <p className="text-white/60 mb-10 font-medium leading-relaxed px-4">
+                  A massive curtain of <span className="text-red-400 font-bold">{TOTAL_APPLES} jumbo</span> 3D apples is blocking your view. Clear them all!
                 </p>
               </>
             ) : status === GameStatus.WON ? (
               <>
-                <div className="text-8xl mb-6">🏆</div>
-                <h2 className="text-4xl font-black text-green-400 mb-2 italic">MASTER!</h2>
-                <p className="text-white text-xl font-bold mb-6">Orchard Perfectly Cleared</p>
-                {feedback && <div className="text-white/60 italic mb-8 bg-white/5 p-5 rounded-2xl border border-white/10 text-sm">"{feedback}"</div>}
+                <div className="text-8xl mb-6">👑</div>
+                <h2 className="text-5xl font-black text-green-400 mb-2 italic uppercase">LEGENDARY</h2>
+                <p className="text-white text-xl font-bold mb-6">Orchard Vision Restored</p>
+                {feedback && <div className="text-white/70 italic mb-8 bg-white/5 p-6 rounded-3xl border border-white/10 text-sm leading-relaxed">"{feedback}"</div>}
               </>
             ) : (
               <>
                 <div className="text-8xl mb-6 grayscale opacity-30">🍏</div>
-                <h2 className="text-4xl font-black text-red-500 mb-2 uppercase">GAME OVER</h2>
-                <p className="text-white text-xl font-bold mb-6 opacity-70">Cleared {score} / {TOTAL_APPLES}</p>
-                {feedback && <div className="text-white/60 italic mb-8 bg-white/5 p-5 rounded-2xl border border-white/10 text-sm">"{feedback}"</div>}
+                <h2 className="text-5xl font-black text-red-500 mb-2 uppercase italic">TIME OUT</h2>
+                <p className="text-white text-xl font-bold mb-6 opacity-80">Cleared {score} / {TOTAL_APPLES}</p>
+                {feedback && <div className="text-white/70 italic mb-8 bg-white/5 p-6 rounded-3xl border border-white/10 text-sm leading-relaxed">"{feedback}"</div>}
               </>
             )}
 
             <button
               onClick={initGame}
-              className="group relative w-full py-6 px-10 bg-red-600 hover:bg-red-500 text-white font-black rounded-3xl transition-all shadow-xl active:scale-95 text-2xl uppercase tracking-widest overflow-hidden"
+              className="group relative w-full py-7 px-10 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2rem] transition-all shadow-2xl active:scale-95 text-2xl uppercase tracking-[0.15em] overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-              {status === GameStatus.IDLE ? 'PLAY NOW' : 'TRY AGAIN'}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.2s_infinite]"></div>
+              <span className="relative drop-shadow-md">{status === GameStatus.IDLE ? 'START MISSION' : 'RESTART'}</span>
             </button>
           </div>
         </div>
