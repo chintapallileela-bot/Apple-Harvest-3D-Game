@@ -406,11 +406,11 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Stop Button */}
+      {/* Floating Stop Button - Violet variant */}
       {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
         <button 
           onPointerDown={quitToHome}
-          className="fixed bottom-10 right-10 z-[2500] w-20 h-20 bg-red-600 hover:bg-red-500 text-white rounded-full flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(220,38,38,0.5)] active:scale-90 transition-all pointer-events-auto border-4 border-white/10"
+          className="fixed bottom-10 right-10 z-[2500] w-20 h-20 bg-violet-600 hover:bg-violet-500 text-white rounded-full flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(139,92,246,0.5)] active:scale-90 transition-all pointer-events-auto border-4 border-white/10"
           title="Stop Game"
         >
           <div className="w-5 h-5 bg-white rounded-sm mb-1"></div>
