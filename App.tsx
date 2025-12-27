@@ -8,6 +8,8 @@ import { GoogleGenAI } from '@google/genai';
 const WIN_TARGET = 400; 
 const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
+const SAFE_TOP_MARGIN = 22; // Start apples below the HUD (22% from top)
+const SAFE_BOTTOM_MARGIN = 5; // Margin from bottom
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -209,7 +211,7 @@ const App: React.FC = () => {
       id,
       x,
       y,
-      z: Math.random() * 40 - 20, // Tightened depth to reduce visual overlap in 3D
+      z: Math.random() * 40 - 20, 
       size: deviceType === 'mobile' ? (60 + Math.random() * 20) : (90 + Math.random() * 30),
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? 0 : Math.random() * 0.1,
@@ -322,11 +324,16 @@ const App: React.FC = () => {
     setParticles([]);
 
     // Generate a Grid of apples to ensure they spread completely without overlapping
+    // and respect the safe areas (under the HUD)
     const isPortrait = window.innerHeight > window.innerWidth;
     const cols = isPortrait ? 5 : 8;
-    const rows = isPortrait ? 9 : 6;
-    const cellWidth = 90 / cols;
-    const cellHeight = 90 / rows;
+    const rows = isPortrait ? 8 : 5; 
+    
+    const xAvailable = 90; // 5% to 95%
+    const yAvailable = 100 - SAFE_TOP_MARGIN - SAFE_BOTTOM_MARGIN;
+    
+    const cellWidth = xAvailable / cols;
+    const cellHeight = yAvailable / rows;
     
     const initialBatch: AppleData[] = [];
     for (let r = 0; r < rows; r++) {
@@ -334,8 +341,9 @@ const App: React.FC = () => {
         // Position at cell center + random jitter
         const jitterX = (Math.random() - 0.5) * (cellWidth * 0.4);
         const jitterY = (Math.random() - 0.5) * (cellHeight * 0.4);
+        
         const x = (c * cellWidth) + (cellWidth / 2) + 5 + jitterX;
-        const y = (r * cellHeight) + (cellHeight / 2) + 5 + jitterY;
+        const y = (r * cellHeight) + (cellHeight / 2) + SAFE_TOP_MARGIN + jitterY;
         
         initialBatch.push(createAppleAt(`apple-grid-${r}-${c}-${Date.now()}`, x, y, true));
       }
@@ -374,11 +382,11 @@ const App: React.FC = () => {
           return next;
         });
         
-        // Spawn a new apple in a random spot, but keep it within bounds
+        // Spawn a new apple in a random spot, but keep it within bounds (under HUD)
         const newOnes = [];
         if (Math.random() > 0.4) {
           const newX = Math.random() * 90 + 5;
-          const newY = Math.random() * 90 + 5;
+          const newY = Math.random() * (100 - SAFE_TOP_MARGIN - SAFE_BOTTOM_MARGIN - 5) + SAFE_TOP_MARGIN;
           newOnes.push(createAppleAt(`apple-respawn-${Date.now()}`, newX, newY));
         }
         return [...prev.filter(a => a.id !== id), ...newOnes];
