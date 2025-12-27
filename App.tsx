@@ -5,8 +5,7 @@ import Apple from './components/Apple';
 import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
-const INITIAL_SCREEN_APPLES = 150; 
-const WIN_TARGET = 500; 
+const WIN_TARGET = 400; 
 const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
 
@@ -205,13 +204,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [status, clearMask]);
 
-  const createApple = useCallback((id: string, isSpawnSequence = false): AppleData => {
+  const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false): AppleData => {
     return {
       id,
-      x: Math.random() * 90 + 5,
-      y: Math.random() * 90 + 5,
-      z: Math.random() * 100 - 50,
-      size: deviceType === 'mobile' ? (80 + Math.random() * 40) : (120 + Math.random() * 60),
+      x,
+      y,
+      z: Math.random() * 40 - 20, // Tightened depth to reduce visual overlap in 3D
+      size: deviceType === 'mobile' ? (60 + Math.random() * 20) : (90 + Math.random() * 30),
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? 0 : Math.random() * 0.1,
       color: 'red', 
@@ -244,7 +243,7 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = 25; // Increased count for better effect
+    const count = 25;
 
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
@@ -253,20 +252,20 @@ const App: React.FC = () => {
       const force = 100 + Math.random() * 250;
       const type = types[Math.floor(Math.random() * types.length)];
       
-      let color = '#ef4444'; // default red
+      let color = '#ef4444'; 
       let size = 8 + Math.random() * 10;
 
       if (type === 'flesh') {
-        color = '#fffbeb'; // cream color
+        color = '#fffbeb'; 
         size = 12 + Math.random() * 12;
       } else if (type === 'juice') {
-        color = '#dc2626'; // deep red
+        color = '#dc2626'; 
         size = 4 + Math.random() * 8;
       } else if (type === 'seed') {
-        color = '#451a03'; // brown
+        color = '#451a03'; 
         size = 5 + Math.random() * 5;
       } else if (type === 'leaf') {
-        color = '#22c55e'; // green
+        color = '#22c55e'; 
         size = 10 + Math.random() * 15;
       }
 
@@ -288,7 +287,7 @@ const App: React.FC = () => {
     setParticles(prev => [...prev, ...newParticles]);
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1000); // Slightly longer cleanup for the new animation duration
+    }, 1000);
   }, []);
 
   const runCountdown = useCallback(() => {
@@ -322,16 +321,31 @@ const App: React.FC = () => {
     setFeedback(null);
     setParticles([]);
 
+    // Generate a Grid of apples to ensure they spread completely without overlapping
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const cols = isPortrait ? 5 : 8;
+    const rows = isPortrait ? 9 : 6;
+    const cellWidth = 90 / cols;
+    const cellHeight = 90 / rows;
+    
     const initialBatch: AppleData[] = [];
-    for (let i = 0; i < INITIAL_SCREEN_APPLES; i++) {
-      initialBatch.push(createApple(`apple-${i}-${Date.now()}`, true));
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        // Position at cell center + random jitter
+        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.4);
+        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.4);
+        const x = (c * cellWidth) + (cellWidth / 2) + 5 + jitterX;
+        const y = (r * cellHeight) + (cellHeight / 2) + 5 + jitterY;
+        
+        initialBatch.push(createAppleAt(`apple-grid-${r}-${c}-${Date.now()}`, x, y, true));
+      }
     }
     setApples(initialBatch);
 
     setTimeout(() => {
       runCountdown();
     }, 800);
-  }, [createApple, clearMask, runCountdown]);
+  }, [createAppleAt, clearMask, runCountdown]);
 
   const quitToHome = useCallback(() => {
     playSound('click');
@@ -360,13 +374,18 @@ const App: React.FC = () => {
           return next;
         });
         
+        // Spawn a new apple in a random spot, but keep it within bounds
         const newOnes = [];
-        if (Math.random() > 0.2) newOnes.push(createApple(`apple-new-${Date.now()}`));
+        if (Math.random() > 0.4) {
+          const newX = Math.random() * 90 + 5;
+          const newY = Math.random() * 90 + 5;
+          newOnes.push(createAppleAt(`apple-respawn-${Date.now()}`, newX, newY));
+        }
         return [...prev.filter(a => a.id !== id), ...newOnes];
       }
       return prev;
     });
-  }, [status, createApple, triggerBurst]);
+  }, [status, createAppleAt, triggerBurst]);
 
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
