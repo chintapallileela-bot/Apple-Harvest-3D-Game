@@ -5,11 +5,12 @@ import Apple from './components/Apple';
 import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
-const WIN_TARGET = 400; 
+const WIN_TARGET = 100; // Updated to 100 as per user's "remove 100 apples" request
 const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
 const SAFE_TOP_MARGIN = 22; // Start apples below the HUD (22% from top)
-const SAFE_BOTTOM_MARGIN = 5; // Margin from bottom
+const SAFE_BOTTOM_MARGIN = 8; // Margin from bottom
+const SIDE_MARGIN = 5;
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -42,7 +43,7 @@ const App: React.FC = () => {
   const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'chime' | 'countdown' | 'click', currentScore?: number) => {
     try {
       if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       }
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') ctx.resume();
@@ -212,9 +213,9 @@ const App: React.FC = () => {
       x,
       y,
       z: Math.random() * 40 - 20, 
-      size: deviceType === 'mobile' ? (60 + Math.random() * 20) : (90 + Math.random() * 30),
+      size: deviceType === 'mobile' ? (50 + Math.random() * 15) : (80 + Math.random() * 25),
       rotation: Math.random() * 360,
-      delay: isSpawnSequence ? 0 : Math.random() * 0.1,
+      delay: isSpawnSequence ? Math.random() * 0.5 : 0,
       color: 'red', 
       variationSeed: Math.random(),
     };
@@ -245,30 +246,30 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = 25;
+    const count = 20;
 
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const force = 100 + Math.random() * 250;
+      const force = 100 + Math.random() * 200;
       const type = types[Math.floor(Math.random() * types.length)];
       
       let color = '#ef4444'; 
-      let size = 8 + Math.random() * 10;
+      let size = 6 + Math.random() * 8;
 
       if (type === 'flesh') {
         color = '#fffbeb'; 
-        size = 12 + Math.random() * 12;
+        size = 10 + Math.random() * 10;
       } else if (type === 'juice') {
         color = '#dc2626'; 
-        size = 4 + Math.random() * 8;
+        size = 3 + Math.random() * 6;
       } else if (type === 'seed') {
         color = '#451a03'; 
-        size = 5 + Math.random() * 5;
+        size = 4 + Math.random() * 4;
       } else if (type === 'leaf') {
         color = '#22c55e'; 
-        size = 10 + Math.random() * 15;
+        size = 8 + Math.random() * 12;
       }
 
       newParticles.push({
@@ -289,7 +290,7 @@ const App: React.FC = () => {
     setParticles(prev => [...prev, ...newParticles]);
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1000);
+    }, 850);
   }, []);
 
   const runCountdown = useCallback(() => {
@@ -323,36 +324,42 @@ const App: React.FC = () => {
     setFeedback(null);
     setParticles([]);
 
-    // Generate a Grid of apples to ensure they spread completely without overlapping
-    // and respect the safe areas (under the HUD)
-    const isPortrait = window.innerHeight > window.innerWidth;
-    const cols = isPortrait ? 5 : 8;
-    const rows = isPortrait ? 8 : 5; 
+    // Generate exactly 100 apples spread in a grid
+    const totalApples = WIN_TARGET;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const aspectRatio = screenWidth / screenHeight;
+
+    // Calculate columns and rows to fit the aspect ratio while totaling 100
+    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio)));
+    const rows = Math.ceil(totalApples / cols);
     
-    const xAvailable = 90; // 5% to 95%
+    const xAvailable = 100 - (SIDE_MARGIN * 2);
     const yAvailable = 100 - SAFE_TOP_MARGIN - SAFE_BOTTOM_MARGIN;
     
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
     
     const initialBatch: AppleData[] = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        // Position at cell center + random jitter
-        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.4);
-        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.4);
+    let count = 0;
+    for (let r = 0; r < rows && count < totalApples; r++) {
+      for (let c = 0; c < cols && count < totalApples; c++) {
+        // Position at cell center + random jitter to make it look less robotic
+        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.6);
+        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.6);
         
-        const x = (c * cellWidth) + (cellWidth / 2) + 5 + jitterX;
-        const y = (r * cellHeight) + (cellHeight / 2) + SAFE_TOP_MARGIN + jitterY;
+        const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
+        const y = SAFE_TOP_MARGIN + (r * cellHeight) + (cellHeight / 2) + jitterY;
         
-        initialBatch.push(createAppleAt(`apple-grid-${r}-${c}-${Date.now()}`, x, y, true));
+        initialBatch.push(createAppleAt(`apple-grid-${count}-${Date.now()}`, x, y, true));
+        count++;
       }
     }
     setApples(initialBatch);
 
     setTimeout(() => {
       runCountdown();
-    }, 800);
+    }, 1000);
   }, [createAppleAt, clearMask, runCountdown]);
 
   const quitToHome = useCallback(() => {
@@ -372,28 +379,22 @@ const App: React.FC = () => {
         triggerBurst(target);
         updateMask(target.x, target.y, target.size);
         playSound('pop');
-        setScore(s => {
-          const next = s + 1;
-          playSound('chime', next);
-          if (next >= WIN_TARGET) {
-            setStatus(GameStatus.WON);
-            playSound('win');
-          }
-          return next;
-        });
         
-        // Spawn a new apple in a random spot, but keep it within bounds (under HUD)
-        const newOnes = [];
-        if (Math.random() > 0.4) {
-          const newX = Math.random() * 90 + 5;
-          const newY = Math.random() * (100 - SAFE_TOP_MARGIN - SAFE_BOTTOM_MARGIN - 5) + SAFE_TOP_MARGIN;
-          newOnes.push(createAppleAt(`apple-respawn-${Date.now()}`, newX, newY));
+        const newScore = score + 1;
+        setScore(newScore);
+        playSound('chime', newScore);
+
+        if (newScore >= WIN_TARGET) {
+          setStatus(GameStatus.WON);
+          playSound('win');
         }
-        return [...prev.filter(a => a.id !== id), ...newOnes];
+        
+        // Return apples WITHOUT the clicked one and WITHOUT adding any new ones
+        return prev.filter(a => a.id !== id);
       }
       return prev;
     });
-  }, [status, createAppleAt, triggerBurst]);
+  }, [status, score, triggerBurst]);
 
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
@@ -419,12 +420,12 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? "Celebratory rustic one-liner for a winner who revealed a secret orchard."
-            : "Brief encouraging rustic one-liner for someone who didn't finish harvesting in time.";
+            ? "Very short celebratory rustic one-liner for a winner who harvested 100 apples."
+            : "Short encouraging rustic one-liner for someone who missed the 100 apple harvest.";
           const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
           setFeedback(res.text || null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "The vision is yours!" : "Winter claimed the orchard.");
+          setFeedback(status === GameStatus.WON ? "The orchard is clear!" : "Time froze the harvest.");
         }
       };
       generateMessage();
@@ -442,7 +443,7 @@ const App: React.FC = () => {
           <h1 className="text-white text-2xl font-black italic tracking-tighter leading-none">
             APPLE <span className="text-red-500 underline decoration-red-500/30 underline-offset-4">HARVEST</span>
           </h1>
-          <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest mt-1">Pop to clear the frost</p>
+          <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
         </div>
 
         <div className={`flex items-center gap-6 bg-black/90 px-8 py-4 rounded-3xl border border-white/20 shadow-2xl transition-all duration-500 ${status === GameStatus.IDLE ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
@@ -464,11 +465,11 @@ const App: React.FC = () => {
       {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
         <button 
           onPointerDown={quitToHome}
-          className="fixed bottom-10 right-10 z-[2500] w-20 h-20 bg-violet-600 hover:bg-violet-500 text-white rounded-full flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(139,92,246,0.5)] active:scale-90 transition-all pointer-events-auto border-4 border-white/10"
+          className="fixed bottom-10 right-10 z-[2500] w-20 h-20 bg-neutral-800 hover:bg-neutral-700 text-white rounded-full flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.5)] active:scale-90 transition-all pointer-events-auto border-2 border-white/10"
           title="Stop Game"
         >
-          <div className="w-5 h-5 bg-white rounded-sm mb-1"></div>
-          <span className="text-[10px] font-black uppercase tracking-tighter">STOP</span>
+          <div className="w-4 h-4 bg-white rounded-sm mb-1"></div>
+          <span className="text-[10px] font-black uppercase tracking-tighter">QUIT</span>
         </button>
       )}
 
@@ -523,12 +524,11 @@ const App: React.FC = () => {
                         alt="Hero Apple"
                       />
                    </div>
-                   <div className="absolute -top-4 -right-8 text-5xl animate-pulse">✨</div>
-                   <div className="absolute -bottom-8 -left-8 text-3xl animate-pulse opacity-50">✨</div>
+                   <div className="absolute -top-4 -right-8 text-5xl animate-pulse">🍎</div>
                 </div>
-                <h2 className="text-5xl font-black text-white mb-6 italic tracking-tighter leading-none uppercase">APPLE HARVEST</h2>
+                <h2 className="text-5xl font-black text-white mb-6 italic tracking-tighter leading-none uppercase">100 APPLE CHALLENGE</h2>
                 <p className="text-white/60 mb-12 text-xl font-medium leading-relaxed">
-                  The orchard is frozen. Pop <span className="text-red-500 font-black">{WIN_TARGET}</span> red apples to reveal what lies beneath.
+                  Clear exactly <span className="text-red-500 font-black">100</span> red apples from the frost before time runs out. They won't grow back!
                 </p>
                 <button
                   onPointerDown={initGame}
@@ -541,8 +541,8 @@ const App: React.FC = () => {
             ) : status === GameStatus.WON ? (
               <>
                 <div className="text-8xl mb-8">🧺</div>
-                <h2 className="text-5xl font-black text-green-400 mb-4 italic tracking-tighter uppercase">HARVESTED</h2>
-                <p className="text-white/80 font-bold text-2xl mb-6">Masterful reveal!</p>
+                <h2 className="text-5xl font-black text-green-400 mb-4 italic tracking-tighter uppercase">SUCCESS!</h2>
+                <p className="text-white/80 font-bold text-2xl mb-6">All 100 apples harvested!</p>
                 {feedback && <div className="text-white/40 italic text-lg mb-12 bg-white/5 p-8 rounded-3xl border border-white/5">"{feedback}"</div>}
                 <div className="flex flex-col gap-4">
                   <button
@@ -563,7 +563,7 @@ const App: React.FC = () => {
               <>
                 <div className="text-8xl mb-8 opacity-40">🍂</div>
                 <h2 className="text-5xl font-black text-red-500 mb-4 italic tracking-tighter uppercase">FROZEN</h2>
-                <p className="text-white/80 font-bold text-2xl mb-6">Cleared only {revealPercent}%</p>
+                <p className="text-white/80 font-bold text-2xl mb-6">Popped: {score} / 100</p>
                 {feedback && <div className="text-white/40 italic text-lg mb-12 bg-white/5 p-8 rounded-3xl border border-white/5">"{feedback}"</div>}
                 <div className="flex flex-col gap-4">
                   <button
