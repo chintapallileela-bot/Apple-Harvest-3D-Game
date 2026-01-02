@@ -34,25 +34,25 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
         touchAction: 'none'
       }}
     >
+      {/* Invisible larger hit area for mobile accessibility */}
+      <div className="absolute inset-[-40%] z-50"></div>
+
       <div 
-        className="relative w-full h-full transition-transform duration-200 group-hover:scale-110 active:scale-75" 
+        className="relative w-full h-full transition-all duration-300 group-hover:scale-125 group-active:scale-75" 
         style={{ 
           transformStyle: 'preserve-3d',
           transform: `scale(${jitterScale})`
         }}
       >
-        {/* Soft shadow for 3D presence */}
-        <div className="absolute inset-2 bg-black/50 blur-lg rounded-full translate-y-2 -z-10"></div>
+        <div className="absolute inset-2 bg-black/40 blur-xl rounded-full translate-y-3 -z-10"></div>
         
-        {/* Apple Image */}
         <img 
           src={appleImage}
           alt={`${data.color} apple`}
-          className="w-full h-full object-contain rounded-full drop-shadow-2xl border-2 border-white/10"
+          className="w-full h-full object-contain rounded-full shadow-2xl border-[1.5px] border-white/10"
         />
         
-        {/* Subtle glossy highlight */}
-        <div className="absolute top-[10%] left-[25%] w-[35%] h-[25%] bg-white/40 blur-[3px] rounded-full rotate-[-35deg] pointer-events-none"></div>
+        <div className="absolute top-[12%] left-[28%] w-[35%] h-[25%] bg-white/30 blur-[4px] rounded-full rotate-[-35deg] pointer-events-none"></div>
       </div>
     </div>
   );
