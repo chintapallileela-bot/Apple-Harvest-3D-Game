@@ -157,7 +157,7 @@ const App: React.FC = () => {
     } catch (e) {}
   };
 
-  const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false): AppleData => {
+  const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false, color: 'red' | 'green' = 'red'): AppleData => {
     let baseSize = 70;
     if (deviceType === 'mobile') baseSize = 55;
     if (deviceType === 'desktop') baseSize = 85;
@@ -170,7 +170,7 @@ const App: React.FC = () => {
       size: baseSize + Math.random() * 15,
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? Math.random() * 0.4 : 0,
-      color: 'red', 
+      color, 
       variationSeed: Math.random(),
     };
   }, [deviceType]);
@@ -184,13 +184,19 @@ const App: React.FC = () => {
       const angle = Math.random() * Math.PI * 2;
       const force = 100 + Math.random() * 150;
       const type = types[Math.floor(Math.random() * types.length)];
-      let color = '#ef4444'; 
+      
+      let color = '#ef4444'; // default red
       let size = (4 + Math.random() * 6) * (deviceType === 'mobile' ? 0.8 : 1);
       
-      if (type === 'flesh') color = '#fffbeb';
-      else if (type === 'juice') color = '#dc2626';
-      else if (type === 'seed') color = '#451a03';
-      else if (type === 'leaf') color = '#22c55e';
+      if (type === 'flesh') {
+        color = apple.color === 'green' ? '#f0fdf4' : '#fffbeb';
+      } else if (type === 'juice') {
+        color = apple.color === 'green' ? '#84cc16' : '#dc2626';
+      } else if (type === 'seed') {
+        color = '#451a03';
+      } else if (type === 'leaf') {
+        color = apple.color === 'green' ? '#15803d' : '#22c55e';
+      }
 
       newParticles.push({
         id: `p-${Date.now()}-${i}`,
@@ -264,6 +270,12 @@ const App: React.FC = () => {
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
     
+    // Shuffle indices for 25 green apples
+    const greenIndices = new Set<number>();
+    while (greenIndices.size < 25) {
+      greenIndices.add(Math.floor(Math.random() * totalApples));
+    }
+
     const initialBatch: AppleData[] = [];
     let count = 0;
     for (let r = 0; r < rows && count < totalApples; r++) {
@@ -272,7 +284,8 @@ const App: React.FC = () => {
         const jitterY = (Math.random() - 0.5) * (cellHeight * 0.8);
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
         const y = 5 + (r * cellHeight) + (cellHeight / 2) + jitterY;
-        initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true));
+        const color = greenIndices.has(count) ? 'green' : 'red';
+        initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true, color));
         count++;
       }
     }
@@ -316,7 +329,7 @@ const App: React.FC = () => {
         setScore(newScore);
         if (newScore % 5 === 0) playSound('chime', newScore);
         if (newScore >= WIN_TARGET) {
-          // Instead of immediate victory, transition to Viewing phase for 1 minute
+          // Transition to Viewing phase for 1 minute before Victory screen
           setStatus(GameStatus.VIEWING);
           setTimeLeft(60); 
           playSound('win');
@@ -393,10 +406,10 @@ const App: React.FC = () => {
         >
           <div className="flex flex-col">
             <h1 className="text-white text-base sm:text-lg md:text-xl font-black italic tracking-tighter leading-none">
-              {status === GameStatus.VIEWING ? 'VIEWING SCENERY' : selectedTheme.name.toUpperCase()} <span className="text-red-500">{status === GameStatus.VIEWING ? 'REVEALED' : 'HARVEST'}</span>
+              {status === GameStatus.VIEWING ? 'SCENERY REVEALED' : selectedTheme.name.toUpperCase()} <span className="text-red-500">{status === GameStatus.VIEWING ? '60S PREVIEW' : 'HARVEST'}</span>
             </h1>
             <p className="text-[7px] sm:text-[8px] text-white/50 uppercase font-bold tracking-widest mt-0.5 sm:mt-1">
-              {status === GameStatus.VIEWING ? 'Full Background Unlocked' : `Popped: ${score} / ${WIN_TARGET}`}
+              {status === GameStatus.VIEWING ? 'Enjoy the view before victory' : `Popped: ${score} / ${WIN_TARGET}`}
             </p>
           </div>
 
@@ -432,7 +445,7 @@ const App: React.FC = () => {
              {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING || status === GameStatus.VIEWING) && (
                <div className="flex items-center gap-2 sm:gap-4 bg-black/40 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-white/10">
                   <div className="flex flex-col items-center">
-                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Revealing' : 'Time'}</span>
+                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Reveal Time' : 'Time'}</span>
                     <span className={`text-xs sm:text-base md:text-lg font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
                       {timeLeft < 10 ? `0:0${timeLeft}` : `0:${timeLeft}`}
                     </span>

@@ -7,10 +7,12 @@ interface AppleProps {
   onClick: (id: string) => void;
 }
 
-const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
+const RED_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
+const GREEN_APPLE_IMAGE = "https://i.postimg.cc/rFjWN5Jg/Green-Apple.jpg";
 
 const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
   const jitterScale = 0.95 + (data.variationSeed * 0.15);
+  const appleImage = data.color === 'green' ? GREEN_APPLE_IMAGE : RED_APPLE_IMAGE;
   
   return (
     <div
@@ -42,15 +44,15 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
         {/* Soft shadow for 3D presence */}
         <div className="absolute inset-2 bg-black/50 blur-lg rounded-full translate-y-2 -z-10"></div>
         
-        {/* Realistic Apple Image */}
+        {/* Apple Image */}
         <img 
-          src={HERO_APPLE_IMAGE}
-          alt="Apple"
-          className="w-full h-full object-contain rounded-full drop-shadow-2xl border-2 border-red-500/20"
+          src={appleImage}
+          alt={`${data.color} apple`}
+          className="w-full h-full object-contain rounded-full drop-shadow-2xl border-2 border-white/10"
         />
         
         {/* Subtle glossy highlight */}
-        <div className="absolute top-[10%] left-[25%] w-[35%] h-[25%] bg-white/50 blur-[3px] rounded-full rotate-[-35deg] pointer-events-none"></div>
+        <div className="absolute top-[10%] left-[25%] w-[35%] h-[25%] bg-white/40 blur-[3px] rounded-full rotate-[-35deg] pointer-events-none"></div>
       </div>
     </div>
   );
