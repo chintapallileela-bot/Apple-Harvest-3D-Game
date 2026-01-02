@@ -11,6 +11,7 @@ const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
 const TOP_OFFSET = 8; // Padding from top to avoid HUD overlap
 const BOTTOM_OFFSET = 8; // Padding from bottom
 const SIDE_MARGIN = 5; // Padding from sides
+const REVEAL_DURATION = 30; // 30 seconds wait after popping all apples
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -255,7 +256,6 @@ const App: React.FC = () => {
 
     const totalApples = WIN_TARGET; 
 
-    // Create randomized color list (100 Red, 100 Green)
     const colors: ('red' | 'green')[] = [
       ...Array(100).fill('red'),
       ...Array(100).fill('green')
@@ -267,7 +267,6 @@ const App: React.FC = () => {
 
     const initialBatch: AppleData[] = [];
     for (let i = 0; i < totalApples; i++) {
-      // Scattered random positions within margins
       const x = SIDE_MARGIN + Math.random() * (100 - SIDE_MARGIN * 2);
       const y = TOP_OFFSET + Math.random() * (100 - TOP_OFFSET - BOTTOM_OFFSET);
       const size = baseSize + Math.random() * 15;
@@ -278,7 +277,7 @@ const App: React.FC = () => {
 
     setTimeout(() => {
       runCountdown();
-    }, 1600); // Slightly longer spawn sequence
+    }, 1600);
   }, [createAppleAt, runCountdown, deviceType]);
 
   const quitToHome = useCallback(() => {
@@ -315,7 +314,7 @@ const App: React.FC = () => {
         if (newScore % 20 === 0) playSound('chime', newScore);
         if (newScore >= WIN_TARGET) {
           setStatus(GameStatus.VIEWING);
-          setTimeLeft(60); 
+          setTimeLeft(REVEAL_DURATION); // Set exactly 30 seconds
           playSound('win');
         }
         return prev.filter(a => a.id !== id);
@@ -389,7 +388,7 @@ const App: React.FC = () => {
         >
           <div className="flex flex-col">
             <h1 className="text-white text-base sm:text-lg md:text-xl font-black italic tracking-tighter leading-none">
-              {status === GameStatus.VIEWING ? 'SCENERY REVEALED' : selectedTheme.name.toUpperCase()} <span className="text-red-500">{status === GameStatus.VIEWING ? '60S PREVIEW' : 'HARVEST'}</span>
+              {status === GameStatus.VIEWING ? 'SCENERY REVEALED' : selectedTheme.name.toUpperCase()} <span className="text-red-500">{status === GameStatus.VIEWING ? `${REVEAL_DURATION}S PREVIEW` : 'HARVEST'}</span>
             </h1>
             <p className="text-[7px] sm:text-[8px] text-white/50 uppercase font-bold tracking-widest mt-0.5 sm:mt-1">
               {status === GameStatus.VIEWING ? 'Enjoy the view before victory' : `Popped: ${score} / ${WIN_TARGET}`}
@@ -423,7 +422,7 @@ const App: React.FC = () => {
              {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING || status === GameStatus.VIEWING) && (
                <div className="flex items-center gap-2 sm:gap-4 bg-black/40 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-white/10">
                   <div className="flex flex-col items-center">
-                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Reveal Time' : 'Time'}</span>
+                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Auto-Next' : 'Time'}</span>
                     <span className={`text-xs sm:text-base md:text-lg font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
                       {timeLeft < 10 ? `0:0${timeLeft}` : `0:${timeLeft}`}
                     </span>
