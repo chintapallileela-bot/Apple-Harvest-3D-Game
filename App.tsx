@@ -1,19 +1,20 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GameStatus, AppleData, ParticleData } from './types';
-import { GAME_DURATION } from './constants';
+import { GameStatus, AppleData, ParticleData, Theme } from './types';
+import { GAME_DURATION, THEMES } from './constants';
 import Apple from './components/Apple';
 import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
-const WIN_TARGET = 100; // Updated to 100 as per user's "remove 100 apples" request
-const BG_URL = "https://i.postimg.cc/tCCMJVcV/Avatar2.jpg";
+const WIN_TARGET = 100;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const SAFE_TOP_MARGIN = 22; // Start apples below the HUD (22% from top)
-const SAFE_BOTTOM_MARGIN = 8; // Margin from bottom
+const SAFE_TOP_MARGIN = 20; 
+const SAFE_BOTTOM_MARGIN = 10;
 const SIDE_MARGIN = 5;
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
+  const [selectedTheme, setSelectedTheme] = useState<Theme>(THEMES[0]);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [apples, setApples] = useState<AppleData[]>([]);
   const [particles, setParticles] = useState<ParticleData[]>([]);
@@ -24,22 +25,19 @@ const App: React.FC = () => {
   
   const timerRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const bgImageRef = useRef<HTMLImageElement | null>(null);
 
-  // Preload background image and hero apple
   useEffect(() => {
-    const img = new Image();
-    img.src = BG_URL;
-    img.onload = () => {
-      bgImageRef.current = img;
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 768) setDeviceType('mobile');
+      else if (width >= 768 && width <= 1024) setDeviceType('tablet');
+      else setDeviceType('desktop');
     };
-    
-    const heroImg = new Image();
-    heroImg.src = HERO_APPLE_IMAGE;
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sound Engine
   const playSound = (type: 'pop' | 'start' | 'win' | 'lose' | 'chime' | 'countdown' | 'click', currentScore?: number) => {
     try {
       if (!audioCtxRef.current) {
@@ -47,7 +45,6 @@ const App: React.FC = () => {
       }
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') ctx.resume();
-
       const now = ctx.currentTime;
 
       switch (type) {
@@ -151,69 +148,13 @@ const App: React.FC = () => {
     } catch (e) {}
   };
 
-  const clearMask = useCallback(() => {
-    const canvas = maskCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (bgImageRef.current) {
-      ctx.save();
-      ctx.filter = 'blur(40px) saturate(0.2) brightness(0.4)';
-      
-      const img = bgImageRef.current;
-      const canvasAspect = canvas.width / canvas.height;
-      const imgAspect = img.width / img.height;
-      let drawW, drawH, drawX, drawY;
-
-      if (canvasAspect > imgAspect) {
-        drawW = canvas.width;
-        drawH = canvas.width / imgAspect;
-        drawX = 0;
-        drawY = (canvas.height - drawH) / 2;
-      } else {
-        drawH = canvas.height;
-        drawW = canvas.height * imgAspect;
-        drawY = 0;
-        drawX = (canvas.width - drawW) / 2;
-      }
-
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width < 768) setDeviceType('mobile');
-      else if (width >= 768 && width <= 1024) setDeviceType('tablet');
-      else setDeviceType('desktop');
-      
-      if (status === GameStatus.IDLE) {
-        clearMask();
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [status, clearMask]);
-
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false): AppleData => {
     return {
       id,
       x,
       y,
       z: Math.random() * 40 - 20, 
-      size: deviceType === 'mobile' ? (50 + Math.random() * 15) : (80 + Math.random() * 25),
+      size: deviceType === 'mobile' ? (40 + Math.random() * 10) : (55 + Math.random() * 15),
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? Math.random() * 0.5 : 0,
       color: 'red', 
@@ -221,56 +162,21 @@ const App: React.FC = () => {
     };
   }, [deviceType]);
 
-  const updateMask = (xPercent: number, yPercent: number, size: number) => {
-    const canvas = maskCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const x = (xPercent / 100) * canvas.width;
-    const y = (yPercent / 100) * canvas.height;
-    const radius = size * 1.5;
-
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    const gradient = ctx.createRadialGradient(x, y, radius * 0.1, x, y, radius);
-    gradient.addColorStop(0, 'rgba(0,0,0,1)');
-    gradient.addColorStop(0.7, 'rgba(0,0,0,0.5)');
-    gradient.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  };
-
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = 20;
-
+    const count = 18;
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const force = 100 + Math.random() * 200;
+      const force = 120 + Math.random() * 180;
       const type = types[Math.floor(Math.random() * types.length)];
-      
       let color = '#ef4444'; 
       let size = 6 + Math.random() * 8;
-
-      if (type === 'flesh') {
-        color = '#fffbeb'; 
-        size = 10 + Math.random() * 10;
-      } else if (type === 'juice') {
-        color = '#dc2626'; 
-        size = 3 + Math.random() * 6;
-      } else if (type === 'seed') {
-        color = '#451a03'; 
-        size = 4 + Math.random() * 4;
-      } else if (type === 'leaf') {
-        color = '#22c55e'; 
-        size = 8 + Math.random() * 12;
-      }
+      if (type === 'flesh') color = '#fffbeb';
+      else if (type === 'juice') color = '#dc2626';
+      else if (type === 'seed') color = '#451a03';
+      else if (type === 'leaf') color = '#22c55e';
 
       newParticles.push({
         id: `p-${Date.now()}-${i}`,
@@ -314,24 +220,25 @@ const App: React.FC = () => {
     }, 1000);
   }, []);
 
+  const startThemeSelection = () => {
+    playSound('click');
+    setStatus(GameStatus.SELECT_THEME);
+  };
+
   const initGame = useCallback(() => {
     playSound('click');
-    
-    clearMask();
     setStatus(GameStatus.SPAWNING);
     setScore(0);
     setTimeLeft(GAME_DURATION);
     setFeedback(null);
     setParticles([]);
 
-    // Generate exactly 100 apples spread in a grid
     const totalApples = WIN_TARGET;
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    // Calculate columns and rows to fit the aspect ratio while totaling 100
-    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio)));
+    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.5)));
     const rows = Math.ceil(totalApples / cols);
     
     const xAvailable = 100 - (SIDE_MARGIN * 2);
@@ -344,14 +251,11 @@ const App: React.FC = () => {
     let count = 0;
     for (let r = 0; r < rows && count < totalApples; r++) {
       for (let c = 0; c < cols && count < totalApples; c++) {
-        // Position at cell center + random jitter to make it look less robotic
-        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.6);
-        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.6);
-        
+        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.7);
+        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.7);
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
         const y = SAFE_TOP_MARGIN + (r * cellHeight) + (cellHeight / 2) + jitterY;
-        
-        initialBatch.push(createAppleAt(`apple-grid-${count}-${Date.now()}`, x, y, true));
+        initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true));
         count++;
       }
     }
@@ -359,37 +263,30 @@ const App: React.FC = () => {
 
     setTimeout(() => {
       runCountdown();
-    }, 1000);
-  }, [createAppleAt, clearMask, runCountdown]);
+    }, 1200);
+  }, [createAppleAt, runCountdown]);
 
   const quitToHome = useCallback(() => {
     playSound('click');
     setStatus(GameStatus.IDLE);
     setApples([]);
     setParticles([]);
-    clearMask();
-  }, [clearMask]);
+  }, []);
 
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
-    
     setApples(prev => {
       const target = prev.find(a => a.id === id);
       if (target) {
         triggerBurst(target);
-        updateMask(target.x, target.y, target.size);
         playSound('pop');
-        
         const newScore = score + 1;
         setScore(newScore);
-        playSound('chime', newScore);
-
+        if (newScore % 5 === 0) playSound('chime', newScore);
         if (newScore >= WIN_TARGET) {
           setStatus(GameStatus.WON);
           playSound('win');
         }
-        
-        // Return apples WITHOUT the clicked one and WITHOUT adding any new ones
         return prev.filter(a => a.id !== id);
       }
       return prev;
@@ -420,73 +317,58 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? "Very short celebratory rustic one-liner for a winner who harvested 100 apples."
-            : "Short encouraging rustic one-liner for someone who missed the 100 apple harvest.";
+            ? "Short congratulatory message for popping 100 apples. Thematic but concise."
+            : "Short encouraging message for missing the 100 apple harvest.";
           const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
           setFeedback(res.text || null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "The orchard is clear!" : "Time froze the harvest.");
+          setFeedback(status === GameStatus.WON ? "Harvest complete!" : "Better luck next harvest.");
         }
       };
       generateMessage();
     }
   }, [status]);
 
-  const revealPercent = Math.min(Math.round((score / WIN_TARGET) * 100), 100);
-
   return (
     <div className="relative w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* HUD */}
-      <div className="fixed top-0 left-0 w-full z-[2000] p-6 flex justify-between items-start pointer-events-none safe-top">
-        <div className="bg-black/60 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white/10 shadow-2xl pointer-events-none">
-          <h1 className="text-white text-2xl font-black italic tracking-tighter leading-none">
-            APPLE <span className="text-red-500 underline decoration-red-500/30 underline-offset-4">HARVEST</span>
-          </h1>
-          <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
-        </div>
-
-        <div className={`flex items-center gap-6 bg-black/90 px-8 py-4 rounded-3xl border border-white/20 shadow-2xl transition-all duration-500 ${status === GameStatus.IDLE ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-          <div className="flex flex-col items-center">
-            <span className="text-white/30 text-[9px] uppercase font-black">Time</span>
-            <span className={`text-2xl font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-              :{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
-            </span>
-          </div>
-          <div className="w-[1px] h-10 bg-white/10"></div>
-          <div className="flex flex-col items-center">
-            <span className="text-white/30 text-[9px] uppercase font-black">Revealed</span>
-            <span className="text-2xl font-mono font-black text-green-400">{revealPercent}%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating Stop Button */}
+      {/* HUD (In-Game Only) */}
       {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
-        <button 
-          onPointerDown={quitToHome}
-          className="fixed bottom-10 right-10 z-[2500] w-20 h-20 bg-neutral-800 hover:bg-neutral-700 text-white rounded-full flex flex-col items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.5)] active:scale-90 transition-all pointer-events-auto border-2 border-white/10"
-          title="Stop Game"
-        >
-          <div className="w-4 h-4 bg-white rounded-sm mb-1"></div>
-          <span className="text-[10px] font-black uppercase tracking-tighter">QUIT</span>
-        </button>
+        <div className="fixed top-0 left-0 w-full z-[2000] p-4 flex justify-between items-start pointer-events-none">
+          <div className="bg-black/40 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 shadow-xl pointer-events-none">
+            <h1 className="text-white text-xl font-black italic tracking-tighter leading-none">
+              {selectedTheme.name.toUpperCase()} <span className="text-red-500">HARVEST</span>
+            </h1>
+            <p className="text-[9px] text-white/50 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
+          </div>
+          <div className="flex items-center gap-4 bg-black/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 shadow-xl">
+            <div className="flex flex-col items-center">
+              <span className="text-white/40 text-[8px] uppercase font-black">Time</span>
+              <span className={`text-xl font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                :{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+              </span>
+            </div>
+            <div className="w-[1px] h-8 bg-white/10"></div>
+            <div className="flex flex-col items-center">
+              <span className="text-white/40 text-[8px] uppercase font-black">Score</span>
+              <span className="text-xl font-mono font-black text-green-400">{score}</span>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Main Render Plane */}
+      {/* Main Background Area (Updates based on theme) */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={selectedTheme.image} 
+          className="w-full h-full object-cover brightness-75 scale-105 transition-all duration-1000 ease-in-out" 
+          alt="Background"
+        />
+        <div className="absolute inset-0 bg-black/20"></div>
+      </div>
+
+      {/* Game Content Layer */}
       <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <img 
-            src={BG_URL} 
-            className="w-full h-full object-cover" 
-            alt="Secret Background"
-          />
-        </div>
-
-        <div className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000">
-          <canvas ref={maskCanvasRef} className="w-full h-full" />
-        </div>
-
         <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
           {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
           {particles.map(p => <Particle key={p.id} data={p} />)}
@@ -495,92 +377,89 @@ const App: React.FC = () => {
 
       {/* Countdown Overlay */}
       {status === GameStatus.COUNTDOWN && (
-        <div className="fixed inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm overflow-hidden">
-          <div 
-            key={countdown}
-            className={`text-[20rem] md:text-[30rem] font-black italic leading-none flex items-center justify-center text-center
-              ${countdown === 'GO!' ? 'text-red-500 drop-shadow-[0_0_100px_rgba(220,38,38,0.9)]' : 'text-white drop-shadow-[0_20px_60px_rgba(255,255,255,0.4)]'}
-              animate-[countdown-pop_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]
-            `}
-          >
+        <div className="fixed inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
+          <div key={countdown} className={`text-[12rem] md:text-[20rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
             {countdown}
           </div>
         </div>
       )}
 
-      {/* Overlays */}
-      {(status === GameStatus.IDLE || status === GameStatus.WON || status === GameStatus.LOST) && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-6">
-          <div className="bg-neutral-900/80 p-12 md:p-16 rounded-[4rem] border border-white/10 max-w-lg w-full text-center shadow-[0_0_200px_rgba(255,0,0,0.1)] overflow-hidden relative backdrop-saturate-150">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/40 to-transparent"></div>
-            {status === GameStatus.IDLE ? (
-              <>
-                <div className="relative w-full h-56 flex items-center justify-center mb-10">
-                   <div className="relative w-64 h-64 animate-[bounce_3s_infinite_ease-in-out]">
-                      <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full animate-pulse"></div>
-                      <img 
-                        src={HERO_APPLE_IMAGE} 
-                        className="w-full h-full object-contain rounded-full border-4 border-white/10 shadow-2xl drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]" 
-                        alt="Hero Apple"
-                      />
-                   </div>
-                   <div className="absolute -top-4 -right-8 text-5xl animate-pulse">🍎</div>
-                </div>
-                <h2 className="text-5xl font-black text-white mb-6 italic tracking-tighter leading-none uppercase">100 APPLE CHALLENGE</h2>
-                <p className="text-white/60 mb-12 text-xl font-medium leading-relaxed">
-                  Clear exactly <span className="text-red-500 font-black">100</span> red apples from the frost before time runs out. They won't grow back!
-                </p>
-                <button
-                  onPointerDown={initGame}
-                  className="group relative w-full py-8 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-90 text-3xl uppercase tracking-[0.2em] shadow-[0_20px_50px_rgba(220,38,38,0.5)] animate-pulse"
+      {/* Landing Page (IDLE) */}
+      {status === GameStatus.IDLE && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-xl p-4">
+          <div className="bg-stone-900/90 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
+            <div className="relative w-full h-48 flex items-center justify-center mb-8">
+              <div className="relative w-48 h-48 animate-[bounce_4s_infinite_ease-in-out]">
+                <img src={HERO_APPLE_IMAGE} className="w-full h-full object-contain rounded-full border-4 border-white/5 shadow-2xl" alt="Apple Hero" />
+              </div>
+            </div>
+            <h2 className="text-4xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
+            <p className="text-white/60 mb-10 text-lg font-medium text-center">Test your reflexes in stunning locations!</p>
+            <button onPointerDown={startThemeSelection} className="w-full py-6 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-2xl uppercase tracking-widest shadow-xl">START</button>
+          </div>
+        </div>
+      )}
+
+      {/* Theme Selection Page - UPDATED: Transparent bg to see background change instantly */}
+      {status === GameStatus.SELECT_THEME && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/30 backdrop-blur-md p-4 overflow-y-auto scrollbar-hide">
+          <div className="bg-stone-900/85 p-6 md:p-10 rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
+            <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase text-center">SELECT THEME</h2>
+            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-6 text-center">Click a theme to see it live</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full mb-8 max-h-[55vh] overflow-y-auto p-1 scrollbar-hide">
+              {THEMES.map((theme) => (
+                <button 
+                  key={theme.id}
+                  onPointerDown={() => { playSound('click'); setSelectedTheme(theme); }}
+                  className={`py-4 px-3 rounded-xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
+                    ${selectedTheme.id === theme.id 
+                      ? 'bg-red-600 border-red-400 scale-[1.03] shadow-[0_0_20px_rgba(239,68,68,0.4)]' 
+                      : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}
                 >
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <span className="relative z-10">START</span>
+                  <span className={`text-[11px] sm:text-xs font-black uppercase tracking-widest transition-colors leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>
+                    {theme.name}
+                  </span>
+                  {selectedTheme.id === theme.id && (
+                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  )}
                 </button>
-              </>
-            ) : status === GameStatus.WON ? (
-              <>
-                <div className="text-8xl mb-8">🧺</div>
-                <h2 className="text-5xl font-black text-green-400 mb-4 italic tracking-tighter uppercase">SUCCESS!</h2>
-                <p className="text-white/80 font-bold text-2xl mb-6">All 100 apples harvested!</p>
-                {feedback && <div className="text-white/40 italic text-lg mb-12 bg-white/5 p-8 rounded-3xl border border-white/5">"{feedback}"</div>}
-                <div className="flex flex-col gap-4">
-                  <button
-                    onPointerDown={initGame}
-                    className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em] shadow-[0_15px_30px_rgba(220,38,38,0.4)]"
-                  >
-                    PLAY AGAIN
-                  </button>
-                  <button
-                    onPointerDown={quitToHome}
-                    className="text-white/40 hover:text-white uppercase font-black tracking-widest text-xs py-2 transition-colors"
-                  >
-                    RETURN TO MENU
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-8xl mb-8 opacity-40">🍂</div>
-                <h2 className="text-5xl font-black text-red-500 mb-4 italic tracking-tighter uppercase">FROZEN</h2>
-                <p className="text-white/80 font-bold text-2xl mb-6">Popped: {score} / 100</p>
-                {feedback && <div className="text-white/40 italic text-lg mb-12 bg-white/5 p-8 rounded-3xl border border-white/5">"{feedback}"</div>}
-                <div className="flex flex-col gap-4">
-                  <button
-                    onPointerDown={initGame}
-                    className="group relative w-full py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-[2.5rem] transition-all active:scale-95 text-xl uppercase tracking-[0.1em] shadow-[0_15px_30px_rgba(220,38,38,0.4)]"
-                  >
-                    RETRY HARVEST
-                  </button>
-                  <button
-                    onPointerDown={quitToHome}
-                    className="text-white/40 hover:text-white uppercase font-black tracking-widest text-xs py-2 transition-colors"
-                  >
-                    RETURN TO MENU
-                  </button>
-                </div>
-              </>
-            )}
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 w-full sm:max-w-xs">
+              <button
+                onPointerDown={initGame}
+                className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-xl uppercase tracking-widest shadow-[0_10px_40px_rgba(220,38,38,0.4)]"
+              >
+                START GAME
+              </button>
+              <button
+                onPointerDown={() => setStatus(GameStatus.IDLE)}
+                className="w-full py-2 text-white/30 hover:text-white uppercase font-black text-[10px] transition-colors"
+              >
+                BACK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Win/Loss Screens */}
+      {(status === GameStatus.WON || status === GameStatus.LOST) && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
+          <div className="bg-stone-900/90 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative">
+            <div className="text-7xl mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
+            <h2 className={`text-4xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
+              {status === GameStatus.WON ? 'VICTORY' : 'FROZEN'}
+            </h2>
+            <p className="text-white/80 font-bold text-xl mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
+            {feedback && <div className="text-white/40 italic text-sm mb-10 px-4 text-center">"{feedback}"</div>}
+            <div className="space-y-3 w-full">
+              <button onPointerDown={initGame} className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-lg uppercase shadow-lg">RETRY</button>
+              <button onPointerDown={startThemeSelection} className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all active:scale-95 text-xs uppercase tracking-widest border border-white/10">CHANGE THEME</button>
+              <button onPointerDown={quitToHome} className="w-full py-2 text-white/30 hover:text-white uppercase font-black text-[10px] transition-colors">MAIN MENU</button>
+            </div>
           </div>
         </div>
       )}

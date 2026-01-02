@@ -1,7 +1,22 @@
-import React from 'react';
 
-export const GAME_DURATION = 60; // 60 seconds
-export const TOTAL_APPLES = 850; // Balanced count for larger, high-detail 3D apples
+import React from 'react';
+import { Theme } from './types';
+
+export const GAME_DURATION = 60;
+export const TOTAL_APPLES = 100;
+
+export const THEMES: Theme[] = [
+  { id: 'avatar', name: 'Avatar', image: 'https://i.postimg.cc/tCCMJVcV/Avatar.jpg', unlocked: true },
+  { id: 'alien', name: 'Alien', image: 'https://i.postimg.cc/vH9D2bX7/Alien.jpg', unlocked: true },
+  { id: 'fantasy', name: 'Fantasy', image: 'https://i.postimg.cc/jjksdFZx/Fantasy.webp', unlocked: true },
+  { id: 'scifi', name: 'Sci-Fi', image: 'https://i.postimg.cc/XJC0N7rg/Scifi.webp', unlocked: true },
+  { id: 'universe', name: 'Universe', image: 'https://i.postimg.cc/WpGQ5yg1/Universe.jpg', unlocked: true },
+  { id: 'scenery', name: 'Scenery', image: 'https://i.postimg.cc/hvc3FSTR/Scenery.jpg', unlocked: true },
+  { id: 'animals', name: 'Animals', image: 'https://i.postimg.cc/28JFhkyQ/Animals.webp', unlocked: true },
+  { id: 'birds', name: 'Birds', image: 'https://i.postimg.cc/GtfYFKcg/Birds.png', unlocked: true },
+  { id: 'flowers', name: 'Flowers', image: 'https://i.postimg.cc/vBq6yh63/Flowers.jpg', unlocked: true },
+  { id: 'ocean', name: 'Ocean', image: 'https://i.postimg.cc/Dz79kPh0/Ocean.webp', unlocked: true },
+];
 
 export const AppleIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg 
@@ -10,7 +25,6 @@ export const AppleIcon: React.FC<{ className?: string }> = ({ className }) => (
     className={className}
     xmlns="http://www.w3.org/2000/svg"
   >
-    <path d="M17.5 4.5C15.6 4.5 13.9 5.4 12.8 6.9C11.7 5.4 10 4.5 8.1 4.5C4.7 4.5 2 7.2 2 10.6C2 17.5 11.2 22.1 11.6 22.3C11.7 22.4 11.9 22.4 12 22.4C12.1 22.4 12.3 22.4 12.4 22.3C12.8 22.1 22 17.5 22 10.6C22 7.2 19.3 4.5 15.9 4.5H17.5ZM12 20.3C9.7 19.1 4 15.6 4 10.6C4 8.3 5.8 6.5 8.1 6.5C9.7 6.5 11.1 7.4 11.7 8.8C11.8 9 11.9 9.1 12.1 9.1C12.3 9.1 12.4 9 12.5 8.8C13.1 7.4 14.5 6.5 16.1 6.5C18.4 6.5 20.2 8.3 20.2 10.6C20.2 15.6 14.5 19.1 12.2 20.3L12 20.3Z" opacity="0.1"/>
     <path d="M12 2C12 2 13 4 15 4M18.5 7C18.5 10.5 15.5 13.5 12 13.5C8.5 13.5 5.5 10.5 5.5 7C5.5 3.5 8.5 3 12 3C15.5 3 18.5 3.5 18.5 7Z" />
     <path d="M12 3C12 2 13 1 14 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>

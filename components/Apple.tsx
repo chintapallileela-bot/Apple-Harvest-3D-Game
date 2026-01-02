@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppleData } from '../types';
 
@@ -9,7 +10,6 @@ interface AppleProps {
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
 
 const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
-  // Variation seed used to slightly jitter scale/rotation for a more organic feel
   const jitterScale = 0.9 + (data.variationSeed * 0.2);
   
   return (
@@ -33,28 +33,24 @@ const Apple: React.FC<AppleProps> = ({ data, onClick }) => {
       }}
     >
       <div 
-        className="relative w-full h-full transition-transform group-hover:scale-110 active:scale-90" 
+        className="relative w-full h-full transition-transform group-hover:scale-115 active:scale-75" 
         style={{ 
           transformStyle: 'preserve-3d',
           transform: `scale(${jitterScale})`
         }}
       >
-        {/* Shadow under the apple for 3D depth */}
-        <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-2 scale-90 -z-10"></div>
+        {/* Soft shadow for 3D presence */}
+        <div className="absolute inset-1 bg-black/40 blur-md rounded-full translate-y-1.5 -z-10"></div>
         
-        {/* The Original Apple Image */}
+        {/* Realistic Apple Image */}
         <img 
           src={HERO_APPLE_IMAGE}
           alt="Apple"
-          className="w-full h-full object-contain rounded-full drop-shadow-lg"
-          style={{
-            // Green variant logic if needed, but the user specifically asked for "red apples"
-            filter: data.color === 'green' ? 'hue-rotate(90deg) saturate(1.2)' : 'none'
-          }}
+          className="w-full h-full object-contain rounded-full drop-shadow-xl"
         />
         
-        {/* Subtle shine overlay to make it pop on the background */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
+        {/* Subtle glossy highlight */}
+        <div className="absolute top-[10%] left-[20%] w-[30%] h-[20%] bg-white/40 blur-[2px] rounded-full rotate-[-30deg] pointer-events-none"></div>
       </div>
     </div>
   );

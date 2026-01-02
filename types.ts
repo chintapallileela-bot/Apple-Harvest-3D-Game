@@ -1,10 +1,19 @@
+
 export enum GameStatus {
   IDLE = 'IDLE',
+  SELECT_THEME = 'SELECT_THEME',
   SPAWNING = 'SPAWNING',
   COUNTDOWN = 'COUNTDOWN',
   PLAYING = 'PLAYING',
   WON = 'WON',
   LOST = 'LOST'
+}
+
+export interface Theme {
+  id: string;
+  name: string;
+  image: string;
+  unlocked: boolean;
 }
 
 export interface AppleData {
@@ -17,6 +26,7 @@ export interface AppleData {
   delay: number;
   color: 'red' | 'green';
   variationSeed: number;
+  targetThemeId?: string;
 }
 
 export interface ParticleData {
