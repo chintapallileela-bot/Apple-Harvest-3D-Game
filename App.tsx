@@ -180,30 +180,44 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = deviceType === 'mobile' ? 8 : 12;
+    // Increased particle count for a more dramatic effect
+    const count = deviceType === 'mobile' ? 16 : 24; 
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const force = 100 + Math.random() * 150;
+      // Greater force variance for a dynamic burst
+      const force = 120 + Math.random() * 220; 
       const type = types[Math.floor(Math.random() * types.length)];
+      
       let color = '#ef4444';
-      let size = (2 + Math.random() * 4) * (deviceType === 'mobile' ? 0.8 : 1);
+      let size = (3 + Math.random() * 5) * (deviceType === 'mobile' ? 0.7 : 1);
+      
       if (type === 'flesh') color = apple.color === 'green' ? '#f0fdf4' : '#fffbeb';
-      else if (type === 'juice') color = apple.color === 'green' ? '#84cc16' : '#dc2626';
+      else if (type === 'juice') color = apple.color === 'green' ? '#bef264' : '#ef4444';
       else if (type === 'seed') color = '#451a03';
-      else if (type === 'leaf') color = apple.color === 'green' ? '#15803d' : '#22c55e';
+      else if (type === 'leaf') color = apple.color === 'green' ? '#16a34a' : '#22c55e';
 
       newParticles.push({
-        id: `p-${Date.now()}-${i}`, x: apple.x, y: apple.y, z: apple.z,
-        vx: Math.cos(angle) * force, vy: Math.sin(angle) * force,
-        color, type: type as any, size, rotation: Math.random() * 360, spinSpeed: (Math.random() - 0.5) * 20
+        id: `p-${Date.now()}-${i}`,
+        x: apple.x,
+        y: apple.y,
+        z: apple.z,
+        vx: Math.cos(angle) * force,
+        vy: Math.sin(angle) * force,
+        color,
+        type: type as any,
+        size,
+        rotation: Math.random() * 360,
+        spinSpeed: (Math.random() - 0.5) * 30
       });
     }
+    
     setParticles(prev => [...prev, ...newParticles]);
+    // Particles remain long enough for the full animation
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 850);
+    }, 1000);
   }, [deviceType]);
 
   const runCountdown = useCallback(() => {
@@ -243,14 +257,10 @@ const App: React.FC = () => {
       ...Array(100).fill('red'), ...Array(100).fill('green')
     ].sort(() => Math.random() - 0.5);
 
-    // Dynamic grid distribution for even scattering
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    // Calculate columns and rows based on aspect ratio to fit WIN_TARGET
-    // target cols * target rows approx WIN_TARGET
-    // target cols / target rows approx aspectRatio
     let cols = Math.floor(Math.sqrt(WIN_TARGET * aspectRatio));
     let rows = Math.ceil(WIN_TARGET / cols);
 
@@ -264,23 +274,11 @@ const App: React.FC = () => {
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (appleCount >= WIN_TARGET) break;
-
-        // Jittered position within the cell
         const jitterX = (Math.random() - 0.5) * cellWidth * 0.8;
         const jitterY = (Math.random() - 0.5) * cellHeight * 0.8;
-
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
         const y = TOP_OFFSET + (r * cellHeight) + (cellHeight / 2) + jitterY;
-
-        initialBatch.push(
-          createAppleAt(
-            `apple-${appleCount}-${Date.now()}`, 
-            x, y, 
-            true, 
-            colors[appleCount], 
-            baseSize + Math.random() * 15
-          )
-        );
+        initialBatch.push(createAppleAt(`apple-${appleCount}-${Date.now()}`, x, y, true, colors[appleCount], baseSize + Math.random() * 15));
         appleCount++;
       }
       if (appleCount >= WIN_TARGET) break;
