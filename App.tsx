@@ -270,9 +270,9 @@ const App: React.FC = () => {
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
     
-    // Shuffle indices for 25 green apples
+    // Shuffle indices for 50 green apples (Increased from 25)
     const greenIndices = new Set<number>();
-    while (greenIndices.size < 25) {
+    while (greenIndices.size < 50) {
       greenIndices.add(Math.floor(Math.random() * totalApples));
     }
 
