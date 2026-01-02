@@ -1,5 +1,5 @@
 {
   "name": "Apple Harvest Challenge",
-  "description": "An immersive harvest game where you pop 200 scattered apples to reveal stunning scenery themes. Features a mandatory 30-second reveal phase to enjoy the unlocked background before final victory.",
+  "description": "An immersive harvest game where you pop 200 scattered apples to reveal stunning scenery themes. Features a mandatory 10-second reveal phase to enjoy the unlocked background before final victory.",
   "requestFramePermissions": []
 }
