@@ -8,9 +8,9 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const TOP_OFFSET = 12; // Increased to ensure apples spawn below the header
-const BOTTOM_OFFSET = 8;
-const SIDE_MARGIN = 5;
+const TOP_OFFSET = 20; // Increased to 20% to completely clear the header area
+const BOTTOM_OFFSET = 10;
+const SIDE_MARGIN = 8;
 const REVEAL_DURATION = 10; // 10 seconds reveal after all apples are popped
 
 const App: React.FC = () => {
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [countdown, setCountdown] = useState<number | string>(3);
-  const [topBarHeight, setTopBarHeight] = useState(90);
+  const [topBarHeight, setTopBarHeight] = useState(100);
   const [isMuted, setIsMuted] = useState(false);
   
   const timerRef = useRef<any>(null);
@@ -43,13 +43,13 @@ const App: React.FC = () => {
       
       if (width < 640) {
         setDeviceType('mobile');
-        setTopBarHeight(width < height ? 80 : 70);
+        setTopBarHeight(width < height ? 90 : 80);
       } else if (width < 1024) {
         setDeviceType('tablet');
-        setTopBarHeight(90);
+        setTopBarHeight(100);
       } else {
         setDeviceType('desktop');
-        setTopBarHeight(100);
+        setTopBarHeight(110);
       }
       
       let vh = window.innerHeight * 0.01;
@@ -226,7 +226,6 @@ const App: React.FC = () => {
     }, 1000);
   }, [playSound]);
 
-  // Fix: Added missing startThemeSelection function
   const startThemeSelection = useCallback(() => {
     playSound('click');
     setStatus(GameStatus.SELECT_THEME);
@@ -293,7 +292,6 @@ const App: React.FC = () => {
     });
   }, [status, triggerBurst, playSound]);
 
-  // Effect to watch score for victory reveal transition
   useEffect(() => {
     if (status === GameStatus.PLAYING && score >= WIN_TARGET) {
       setStatus(GameStatus.VIEWING);
@@ -349,13 +347,14 @@ const App: React.FC = () => {
       : 0;
 
   const showHUD = status !== GameStatus.IDLE;
+  const showGameStats = status !== GameStatus.IDLE && status !== GameStatus.SELECT_THEME;
 
   return (
     <div className="flex flex-col w-full h-full bg-black overflow-hidden font-sans select-none touch-none" style={{ height: 'calc(var(--vh, 1vh) * 100)' }}>
       
       {showHUD && (
         <header 
-          className="fixed top-0 left-0 right-0 z-[10000] px-4 md:px-6 flex justify-between items-center bg-stone-900/95 border-b border-white/10 shadow-2xl transition-all duration-300 backdrop-blur-md overflow-hidden"
+          className="fixed top-0 left-0 right-0 z-[10000] px-4 md:px-6 flex justify-between items-center bg-stone-950 border-b border-white/10 shadow-2xl transition-all duration-300"
           style={{ height: `${topBarHeight}px` }}
         >
           <div className="flex flex-col">
@@ -370,17 +369,16 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
              <button 
                 onPointerDown={(e) => { e.stopPropagation(); setIsMuted(!isMuted); playSound('click'); }}
-                className="bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-white p-1.5 sm:p-2 rounded-lg border border-white/10 flex items-center justify-center min-w-[32px] sm:min-w-[40px] shadow-sm"
+                className="bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-white p-2 sm:p-2.5 rounded-lg border border-white/20 flex items-center justify-center min-w-[36px] sm:min-w-[44px] shadow-sm"
               >
                 {isMuted ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 fill-white/60" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 fill-white/60" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 fill-white" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 fill-white" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
                 )}
               </button>
 
-             {/* Fix: Removed redundant status !== GameStatus.IDLE check inside showHUD block */}
-             {(status !== GameStatus.SELECT_THEME) && (
+             {showGameStats && (
                <div className="flex flex-col gap-1 items-end">
                  {status !== GameStatus.VIEWING && status !== GameStatus.WON && status !== GameStatus.LOST ? (
                    <>
@@ -388,26 +386,25 @@ const App: React.FC = () => {
                      <button onPointerDown={initGame} className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase border border-white/10 w-16 sm:w-24">RESTART</button>
                    </>
                  ) : (
-                   status === GameStatus.VIEWING ? <div className="text-white/30 text-[8px] uppercase font-black tracking-widest">Reveal Mode</div> : null
+                   status === GameStatus.VIEWING ? <div className="text-white/40 text-[8px] uppercase font-black tracking-widest bg-white/5 px-2 py-1 rounded">Reveal Phase</div> : null
                  )}
                </div>
              )}
              
-             {/* Fix: Removed redundant status !== GameStatus.IDLE check inside showHUD block */}
-             {(status !== GameStatus.SELECT_THEME) && (
-               <div className="flex items-center gap-2 sm:gap-4 bg-black/50 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-white/10 shadow-inner">
+             {showGameStats && (
+               <div className="flex items-center gap-2 sm:gap-4 bg-black px-3 sm:px-5 py-2 sm:py-3 rounded-xl border border-white/20 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] z-[10001]">
                   <div className="flex flex-col items-center">
-                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Auto-Next' : 'Time'}</span>
-                    <span className={`text-xs sm:text-base md:text-lg font-mono font-black tabular-nums ${timeLeft < 10 && status !== GameStatus.VIEWING ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                    <span className="text-white/30 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Reveal' : 'Time'}</span>
+                    <span className={`text-sm sm:text-base md:text-xl font-mono font-black tabular-nums transition-colors ${timeLeft < 10 && status !== GameStatus.VIEWING ? 'text-red-500 animate-pulse' : 'text-white'}`}>
                       {formatTime(timeLeft)}
                     </span>
                   </div>
                   {status !== GameStatus.VIEWING && status !== GameStatus.WON && status !== GameStatus.LOST && (
                     <>
-                      <div className="w-[1px] h-4 sm:h-6 bg-white/10"></div>
+                      <div className="w-[1.5px] h-5 sm:h-7 bg-white/10"></div>
                       <div className="flex flex-col items-center">
-                        <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">Score</span>
-                        <span className="text-xs sm:text-base md:text-lg font-mono font-black text-green-400 tabular-nums">{score}</span>
+                        <span className="text-white/30 text-[6px] sm:text-[7px] uppercase font-black">Score</span>
+                        <span className="text-sm sm:text-base md:text-xl font-mono font-black text-green-400 tabular-nums">{score}</span>
                       </div>
                     </>
                   )}
@@ -420,8 +417,8 @@ const App: React.FC = () => {
       <main className="relative flex-grow w-full bg-stone-950 overflow-hidden" style={{ paddingTop: showHUD ? `${topBarHeight}px` : 0 }}>
         
         <div className="absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out" style={{ opacity: backgroundOpacity }}>
-          <img src={selectedTheme.image} className="w-full h-full object-cover brightness-[0.9] scale-105" alt="Background" />
-          <div className="absolute inset-0 bg-black/10"></div>
+          <img src={selectedTheme.image} className="w-full h-full object-cover brightness-[0.8] scale-105" alt="Background" />
+          <div className="absolute inset-0 bg-black/20"></div>
         </div>
 
         <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
@@ -432,57 +429,57 @@ const App: React.FC = () => {
         </div>
 
         {status === GameStatus.COUNTDOWN && (
-          <div className="absolute inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
-            <div key={countdown} className={`text-[6rem] sm:text-[10rem] md:text-[18rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
+          <div className="absolute inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm">
+            <div key={countdown} className={`text-[7rem] sm:text-[11rem] md:text-[20rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]`}>
               {countdown}
             </div>
           </div>
         )}
 
         {status === GameStatus.IDLE && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto">
-            <div className="bg-stone-900/95 p-6 sm:p-10 md:p-14 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative my-auto">
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto">
+            <div className="bg-stone-900/95 p-6 sm:p-10 md:p-14 rounded-[2.5rem] sm:rounded-[4rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative my-auto">
               <div className="relative w-full h-32 sm:h-40 flex items-center justify-center mb-6 sm:mb-8">
                 <img src={HERO_APPLE_IMAGE} className="w-32 sm:w-40 h-32 sm:h-40 object-contain rounded-full border-4 border-white/5 shadow-2xl animate-[bounce_4s_infinite_ease-in-out]" alt="Apple Hero" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium">Harvest 200 scattered apples to reveal the scenery!</p>
-              <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START</button>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none">APPLE HARVEST</h2>
+              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium leading-relaxed">Pop 200 scattered apples to unlock and reveal beautiful scenery!</p>
+              <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-xl sm:text-2xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
         )}
 
         {status === GameStatus.SELECT_THEME && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto scrollbar-hide">
-            <div className="bg-stone-900/90 p-5 sm:p-10 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
-              <h2 className="text-xl sm:text-2xl font-black text-white mb-2 italic tracking-tighter uppercase">SELECT THEME</h2>
-              <p className="text-white/40 text-[7px] sm:text-[9px] font-bold uppercase tracking-widest mb-4 sm:mb-6">Choose your harvest location</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 w-full mb-6 sm:mb-8 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto p-1 scrollbar-hide">
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto scrollbar-hide">
+            <div className="bg-stone-900/95 p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
+              <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 italic tracking-tighter uppercase">SELECT THEME</h2>
+              <p className="text-white/40 text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mb-6 sm:mb-8">Choose your harvest location</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 w-full mb-8 sm:mb-10 max-h-[45vh] overflow-y-auto p-2 scrollbar-hide">
                 {THEMES.map((theme) => (
-                  <button key={theme.id} onPointerDown={() => { playSound('click'); setSelectedTheme(theme); }} className={`py-2 sm:py-3 px-2 rounded-lg sm:rounded-xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1 ${selectedTheme.id === theme.id ? 'bg-red-600 border-red-400 scale-[1.02] shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}>
-                    <span className={`text-[8px] sm:text-[10px] md:text-xs font-black uppercase tracking-widest leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>{theme.name}</span>
+                  <button key={theme.id} onPointerDown={() => { playSound('click'); setSelectedTheme(theme); }} className={`py-3 sm:py-4 px-3 rounded-xl sm:rounded-2xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1 ${selectedTheme.id === theme.id ? 'bg-red-600 border-red-400 scale-[1.05] shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}>
+                    <span className={`text-[10px] sm:text-[11px] md:text-sm font-black uppercase tracking-widest leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>{theme.name}</span>
                   </button>
                 ))}
               </div>
-              <div className="flex flex-col gap-2 w-full sm:max-w-xs">
-                <button onPointerDown={initGame} className="w-full py-3 sm:py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-lg sm:rounded-2xl transition-all active:scale-95 text-base sm:text-lg uppercase tracking-widest shadow-lg">START HARVEST</button>
-                <button onPointerDown={() => setStatus(GameStatus.IDLE)} className="w-full py-1 text-white/30 hover:text-white uppercase font-black text-[8px] sm:text-[10px]">BACK</button>
+              <div className="flex flex-col gap-3 w-full sm:max-w-sm">
+                <button onPointerDown={initGame} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-3xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START HARVEST</button>
+                <button onPointerDown={() => setStatus(GameStatus.IDLE)} className="w-full py-2 text-white/30 hover:text-white uppercase font-black text-[10px] sm:text-xs tracking-widest">BACK</button>
               </div>
             </div>
           </div>
         )}
 
         {(status === GameStatus.WON || status === GameStatus.LOST) && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
-            <div className="bg-stone-900/90 p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative my-auto">
-              <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>{status === GameStatus.WON ? 'VICTORY' : 'FROZEN'}</h2>
-              <p className="text-white/80 font-bold text-base sm:text-lg mb-4">Popped {score} / {WIN_TARGET} apples</p>
-              {feedback && <div className="text-white/40 italic text-[10px] sm:text-[11px] mb-6 sm:mb-8 px-4 leading-relaxed">"{feedback}"</div>}
-              <div className="space-y-2 sm:space-y-3 w-full">
-                <button onPointerDown={quitToHome} className="w-full py-3 sm:py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-lg sm:rounded-2xl transition-all active:scale-95 text-sm sm:text-md uppercase shadow-lg">RETRY</button>
-                <button onPointerDown={startThemeSelection} className="w-full py-2 sm:py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[10px] uppercase tracking-widest border border-white/10">CHANGE THEME</button>
-                <button onPointerDown={quitToHome} className="w-full py-1 text-white/30 hover:text-white uppercase font-black text-[8px] sm:text-[9px]">MAIN MENU</button>
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
+            <div className="bg-stone-900/95 p-8 sm:p-14 rounded-[3rem] sm:rounded-[5rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative my-auto">
+              <div className="text-5xl sm:text-7xl mb-6 sm:mb-8 drop-shadow-lg">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
+              <h2 className={`text-3xl sm:text-4xl font-black mb-3 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>{status === GameStatus.WON ? 'VICTORY' : 'FROZEN'}</h2>
+              <p className="text-white font-bold text-lg sm:text-xl mb-6">Harvested {score} / {WIN_TARGET} apples</p>
+              {feedback && <div className="text-white/50 italic text-[11px] sm:text-xs mb-8 sm:mb-12 px-6 leading-relaxed">"{feedback}"</div>}
+              <div className="space-y-3 sm:space-y-4 w-full">
+                <button onPointerDown={quitToHome} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-3xl transition-all active:scale-95 text-base sm:text-lg uppercase tracking-wider shadow-xl">TRY AGAIN</button>
+                <button onPointerDown={startThemeSelection} className="w-full py-3 sm:py-4 bg-white/5 hover:bg-white/10 text-white font-black rounded-xl sm:rounded-3xl transition-all active:scale-95 text-[10px] sm:text-xs uppercase tracking-widest border border-white/10">CHANGE LOCATION</button>
+                <button onPointerDown={quitToHome} className="w-full py-2 text-white/20 hover:text-white uppercase font-black text-[9px] sm:text-[10px] tracking-widest">EXIT TO MENU</button>
               </div>
             </div>
           </div>
