@@ -149,12 +149,14 @@ const App: React.FC = () => {
   };
 
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false): AppleData => {
+    // Increased base size so they "cover" the background better
+    const baseSize = deviceType === 'mobile' ? 60 : 85;
     return {
       id,
       x,
       y,
       z: Math.random() * 40 - 20, 
-      size: deviceType === 'mobile' ? (40 + Math.random() * 10) : (55 + Math.random() * 15),
+      size: baseSize + Math.random() * 20,
       rotation: Math.random() * 360,
       delay: isSpawnSequence ? Math.random() * 0.5 : 0,
       color: 'red', 
@@ -242,7 +244,7 @@ const App: React.FC = () => {
     const rows = Math.ceil(totalApples / cols);
     
     const xAvailable = 100 - (SIDE_MARGIN * 2);
-    const yAvailable = 100 - SAFE_BOTTOM_MARGIN - 5; // Extra padding
+    const yAvailable = 100 - SAFE_BOTTOM_MARGIN - 5; 
     
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
@@ -271,14 +273,7 @@ const App: React.FC = () => {
     setStatus(GameStatus.IDLE);
     setApples([]);
     setParticles([]);
-  }, []);
-
-  const stopGame = useCallback(() => {
-    playSound('click');
-    setStatus(GameStatus.SELECT_THEME);
-    setApples([]);
-    setParticles([]);
-    if (timerRef.current) clearInterval(timerRef.current);
+    setScore(0);
   }, []);
 
   const endGame = useCallback(() => {
@@ -351,12 +346,26 @@ const App: React.FC = () => {
     }
   }, [status]);
 
-  const showGameBackground = status !== GameStatus.IDLE;
+  // Logic to reveal background based on score
+  const isGameActive = [
+    GameStatus.SPAWNING, 
+    GameStatus.COUNTDOWN, 
+    GameStatus.PLAYING, 
+    GameStatus.WON, 
+    GameStatus.LOST
+  ].includes(status);
+
+  // Calculate background opacity based on score progression
+  const backgroundOpacity = (status === GameStatus.WON || status === GameStatus.LOST) 
+    ? 1 
+    : isGameActive 
+      ? 0.15 + (0.85 * (score / WIN_TARGET)) 
+      : 0;
 
   return (
     <div className="flex flex-col w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* HUD Bar (Top Bar) - Dedicated space */}
+      {/* HUD Bar (Top Bar) */}
       <div 
         className="relative w-full z-[3000] px-4 flex justify-between items-center bg-stone-900 border-b border-white/10 shadow-lg shrink-0 overflow-visible"
         style={{ height: `${TOP_BAR_HEIGHT}px` }}
@@ -368,7 +377,6 @@ const App: React.FC = () => {
           <p className="text-[8px] text-white/50 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
         </div>
 
-        {/* Action Buttons & Stats */}
         <div className="flex items-center gap-3">
            {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
              <div className="flex flex-col gap-1 items-end">
@@ -405,17 +413,20 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Game Area Container - Below Top Bar */}
+      {/* Game Area Container */}
       <div className="relative flex-grow w-full bg-stone-950 overflow-hidden">
         
-        {/* Main Background Area - Revealed only after IDLE */}
-        <div className={`absolute inset-0 z-0 transition-opacity duration-700 ease-in-out ${showGameBackground ? 'opacity-100' : 'opacity-0'}`}>
+        {/* Main Background Area - Progressive Reveal */}
+        <div 
+          className="absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out" 
+          style={{ opacity: backgroundOpacity }}
+        >
           <img 
             src={selectedTheme.image} 
-            className="w-full h-full object-cover brightness-[0.8] scale-105 transition-transform duration-1000" 
+            className="w-full h-full object-cover brightness-[0.9] scale-105" 
             alt="Background"
           />
-          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="absolute inset-0 bg-black/10"></div>
         </div>
 
         {/* Apple/Game Layer */}
@@ -426,7 +437,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Countdown Overlay (Inside Game Area) */}
+        {/* Countdown Overlay */}
         {status === GameStatus.COUNTDOWN && (
           <div className="absolute inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
             <div key={countdown} className={`text-[10rem] md:text-[18rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
@@ -435,18 +446,17 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Landing Page (IDLE) - Full Screen Overlay but behind top bar? No, usually landing covers all. 
-            User said background and apples below top bar. I will keep overlays within game area or full screen depending on context. */}
+        {/* Landing Page (IDLE) */}
         {status === GameStatus.IDLE && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4">
-            <div className="bg-stone-900/90 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-4">
+            <div className="bg-stone-900/95 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
               <div className="relative w-full h-40 flex items-center justify-center mb-8">
                 <div className="relative w-40 h-40 animate-[bounce_4s_infinite_ease-in-out]">
                   <img src={HERO_APPLE_IMAGE} className="w-full h-full object-contain rounded-full border-4 border-white/5 shadow-2xl" alt="Apple Hero" />
                 </div>
               </div>
               <h2 className="text-3xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-10 text-sm font-medium text-center">Harvest 100 apples in 60 seconds!</p>
+              <p className="text-white/60 mb-10 text-sm font-medium text-center">Harvest 100 apples to reveal the scenery!</p>
               <button onPointerDown={startThemeSelection} className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
@@ -454,7 +464,7 @@ const App: React.FC = () => {
 
         {/* Theme Selection Page */}
         {status === GameStatus.SELECT_THEME && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 overflow-y-auto scrollbar-hide">
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 overflow-y-auto scrollbar-hide">
             <div className="bg-stone-900/90 p-6 md:p-10 rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
               <h2 className="text-2xl font-black text-white mb-2 italic tracking-tighter uppercase text-center">SELECT THEME</h2>
               <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mb-6 text-center">Choose your harvest location</p>
@@ -494,9 +504,9 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Win/Loss Screens (The "Last Page") */}
+        {/* Win/Loss Screens */}
         {(status === GameStatus.WON || status === GameStatus.LOST) && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4">
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4">
             <div className="bg-stone-900/90 p-8 md:p-12 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative">
               <div className="text-6xl mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
               <h2 className={`text-3xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
@@ -505,7 +515,7 @@ const App: React.FC = () => {
               <p className="text-white/80 font-bold text-lg mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
               {feedback && <div className="text-white/40 italic text-[11px] mb-8 px-4 text-center leading-relaxed">"{feedback}"</div>}
               <div className="space-y-3 w-full">
-                <button onPointerDown={initGame} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-md uppercase shadow-lg">RETRY</button>
+                <button onPointerDown={quitToHome} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-md uppercase shadow-lg">RETRY</button>
                 <button onPointerDown={startThemeSelection} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all active:scale-95 text-[10px] uppercase tracking-widest border border-white/10">CHANGE THEME</button>
                 <button onPointerDown={quitToHome} className="w-full py-1.5 text-white/30 hover:text-white uppercase font-black text-[9px] transition-colors">MAIN MENU</button>
               </div>
