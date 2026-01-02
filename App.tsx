@@ -399,28 +399,23 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
              {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING || status === GameStatus.VIEWING) && (
                <div className="flex flex-col gap-1 items-end">
-                 {status === GameStatus.VIEWING ? (
-                   <button 
-                     onPointerDown={() => setStatus(GameStatus.WON)}
-                     className="bg-green-600 hover:bg-green-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-green-400/30 w-16 sm:w-24"
-                   >
-                     FINISH
-                   </button>
+                 {status !== GameStatus.VIEWING ? (
+                   <>
+                     <button 
+                       onPointerDown={endGame}
+                       className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-red-400/30 w-16 sm:w-24"
+                     >
+                       QUIT
+                     </button>
+                     <button 
+                       onPointerDown={initGame}
+                       className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase border border-white/10 w-16 sm:w-24"
+                     >
+                       RESTART
+                     </button>
+                   </>
                  ) : (
-                   <button 
-                     onPointerDown={endGame}
-                     className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-red-400/30 w-16 sm:w-24"
-                   >
-                     QUIT
-                   </button>
-                 )}
-                 {status !== GameStatus.VIEWING && (
-                   <button 
-                     onPointerDown={initGame}
-                     className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase border border-white/10 w-16 sm:w-24"
-                   >
-                     RESTART
-                   </button>
+                   <div className="text-white/30 text-[8px] uppercase font-black tracking-widest">Reveal Mode</div>
                  )}
                </div>
              )}
