@@ -8,7 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const TOP_OFFSET = 20; // Increased to 20% to completely clear the header area
+const TOP_OFFSET = 20; // Clear the header area
 const BOTTOM_OFFSET = 10;
 const SIDE_MARGIN = 8;
 const REVEAL_DURATION = 10; // 10 seconds reveal after all apples are popped
@@ -173,7 +173,7 @@ const App: React.FC = () => {
 
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false, color: 'red' | 'green' = 'red', size: number): AppleData => {
     return {
-      id, x, y, z: Math.random() * 30, size, rotation: Math.random() * 360,
+      id, x, y, z: Math.random() * 40, size, rotation: Math.random() * 360,
       delay: isSpawnSequence ? Math.random() * 1.5 : 0, color, variationSeed: Math.random(),
     };
   }, []);
@@ -238,16 +238,54 @@ const App: React.FC = () => {
     setTimeLeft(GAME_DURATION);
     setFeedback(null);
     setParticles([]);
+
     const colors: ('red' | 'green')[] = [
       ...Array(100).fill('red'), ...Array(100).fill('green')
     ].sort(() => Math.random() - 0.5);
-    let baseSize = deviceType === 'mobile' ? 40 : (deviceType === 'desktop' ? 65 : 55);
+
+    // Dynamic grid distribution for even scattering
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const aspectRatio = screenWidth / screenHeight;
+
+    // Calculate columns and rows based on aspect ratio to fit WIN_TARGET
+    // target cols * target rows approx WIN_TARGET
+    // target cols / target rows approx aspectRatio
+    let cols = Math.floor(Math.sqrt(WIN_TARGET * aspectRatio));
+    let rows = Math.ceil(WIN_TARGET / cols);
+
     const initialBatch: AppleData[] = [];
-    for (let i = 0; i < WIN_TARGET; i++) {
-      const x = SIDE_MARGIN + Math.random() * (100 - SIDE_MARGIN * 2);
-      const y = TOP_OFFSET + Math.random() * (100 - TOP_OFFSET - BOTTOM_OFFSET);
-      initialBatch.push(createAppleAt(`apple-${i}-${Date.now()}`, x, y, true, colors[i], baseSize + Math.random() * 15));
+    const cellWidth = (100 - (SIDE_MARGIN * 2)) / cols;
+    const cellHeight = (100 - TOP_OFFSET - BOTTOM_OFFSET) / rows;
+
+    let baseSize = deviceType === 'mobile' ? 35 : (deviceType === 'desktop' ? 55 : 45);
+
+    let appleCount = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (appleCount >= WIN_TARGET) break;
+
+        // Jittered position within the cell
+        const jitterX = (Math.random() - 0.5) * cellWidth * 0.8;
+        const jitterY = (Math.random() - 0.5) * cellHeight * 0.8;
+
+        const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
+        const y = TOP_OFFSET + (r * cellHeight) + (cellHeight / 2) + jitterY;
+
+        initialBatch.push(
+          createAppleAt(
+            `apple-${appleCount}-${Date.now()}`, 
+            x, y, 
+            true, 
+            colors[appleCount], 
+            baseSize + Math.random() * 15
+          )
+        );
+        appleCount++;
+      }
+      if (appleCount >= WIN_TARGET) break;
     }
+
     setApples(initialBatch);
     setTimeout(() => runCountdown(), 1600);
   }, [createAppleAt, runCountdown, deviceType, playSound]);
