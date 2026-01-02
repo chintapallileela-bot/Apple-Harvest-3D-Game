@@ -8,9 +8,9 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const TOP_OFFSET = 5; // Percentage from top
-const BOTTOM_OFFSET = 5; // Percentage from bottom
-const SIDE_MARGIN = 2; // Percentage from sides
+const TOP_OFFSET = 8; // Padding from top to avoid HUD overlap
+const BOTTOM_OFFSET = 8; // Padding from bottom
+const SIDE_MARGIN = 5; // Padding from sides
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -163,12 +163,12 @@ const App: React.FC = () => {
       id,
       x,
       y,
-      z: 0, 
-      size: size * 1.05, // Slight overlap to ensure gapless appearance
-      rotation: 0, 
-      delay: isSpawnSequence ? Math.random() * 0.8 : 0,
+      z: Math.random() * 30, // Random depth
+      size: size,
+      rotation: Math.random() * 360, 
+      delay: isSpawnSequence ? Math.random() * 1.5 : 0, // Longer, chaotic entrance
       color, 
-      variationSeed: 0,
+      variationSeed: Math.random(),
     };
   }, []);
 
@@ -254,26 +254,6 @@ const App: React.FC = () => {
     setParticles([]);
 
     const totalApples = WIN_TARGET; 
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight - topBarHeight;
-    const aspectRatio = screenWidth / screenHeight;
-
-    // Strict grid calculation for "no gaps" look
-    // rows * cols = 200, and cols/rows approx aspectRatio
-    const rows = Math.round(Math.sqrt(totalApples / aspectRatio));
-    const cols = Math.ceil(totalApples / rows);
-    
-    const usableWidthPercent = 100 - (SIDE_MARGIN * 2);
-    const usableHeightPercent = 100 - TOP_OFFSET - BOTTOM_OFFSET;
-    
-    const cellWidthPercent = usableWidthPercent / cols;
-    const cellHeightPercent = usableHeightPercent / rows;
-    
-    // Convert percentage cell width to actual pixels for the apple component size
-    const appleSizePx = Math.min(
-      (cellWidthPercent / 100) * screenWidth,
-      (cellHeightPercent / 100) * screenHeight
-    );
 
     // Create randomized color list (100 Red, 100 Green)
     const colors: ('red' | 'green')[] = [
@@ -281,22 +261,25 @@ const App: React.FC = () => {
       ...Array(100).fill('green')
     ].sort(() => Math.random() - 0.5);
 
+    let baseSize = 55;
+    if (deviceType === 'mobile') baseSize = 40;
+    if (deviceType === 'desktop') baseSize = 65;
+
     const initialBatch: AppleData[] = [];
-    let count = 0;
-    for (let r = 0; r < rows && count < totalApples; r++) {
-      for (let c = 0; c < cols && count < totalApples; c++) {
-        const x = SIDE_MARGIN + (c * cellWidthPercent) + (cellWidthPercent / 2);
-        const y = TOP_OFFSET + (r * cellHeightPercent) + (cellHeightPercent / 2);
-        initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true, colors[count], appleSizePx));
-        count++;
-      }
+    for (let i = 0; i < totalApples; i++) {
+      // Scattered random positions within margins
+      const x = SIDE_MARGIN + Math.random() * (100 - SIDE_MARGIN * 2);
+      const y = TOP_OFFSET + Math.random() * (100 - TOP_OFFSET - BOTTOM_OFFSET);
+      const size = baseSize + Math.random() * 15;
+      
+      initialBatch.push(createAppleAt(`apple-${i}-${Date.now()}`, x, y, true, colors[i], size));
     }
     setApples(initialBatch);
 
     setTimeout(() => {
       runCountdown();
-    }, 1200);
-  }, [createAppleAt, runCountdown, topBarHeight]);
+    }, 1600); // Slightly longer spawn sequence
+  }, [createAppleAt, runCountdown, deviceType]);
 
   const quitToHome = useCallback(() => {
     playSound('click');
@@ -369,12 +352,12 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? "Short congratulatory message for popping 200 apples. Thematic but concise."
-            : "Short encouraging message for missing the 200 apple harvest.";
+            ? "Short congratulatory message for popping 200 scattered apples. Thematic but concise."
+            : "Short encouraging message for missing the 200 apple scattered harvest.";
           const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
           setFeedback(res.text || null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "Massive Tiled Harvest complete!" : "The grid was too dense this time.");
+          setFeedback(status === GameStatus.WON ? "Massive Scattered Harvest complete!" : "The harvest was too spread out this time.");
         }
       };
       generateMessage();
@@ -503,7 +486,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest a gapless wall of 200 mixed apples!</p>
+              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 200 scattered apples to reveal the scenery!</p>
               <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
