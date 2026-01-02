@@ -8,7 +8,6 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 100;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const TOP_BAR_HEIGHT = 80; // height in pixels
 const SAFE_BOTTOM_MARGIN = 10;
 const SIDE_MARGIN = 5;
 
@@ -22,6 +21,7 @@ const App: React.FC = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [countdown, setCountdown] = useState<number | string>(3);
+  const [topBarHeight, setTopBarHeight] = useState(80);
   
   const timerRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -29,9 +29,18 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
-      if (width < 768) setDeviceType('mobile');
-      else if (width >= 768 && width <= 1024) setDeviceType('tablet');
-      else setDeviceType('desktop');
+      const height = window.innerHeight;
+      
+      if (width < 640) {
+        setDeviceType('mobile');
+        setTopBarHeight(width < height ? 70 : 60); // Smaller bar in landscape mobile
+      } else if (width < 1024) {
+        setDeviceType('tablet');
+        setTopBarHeight(80);
+      } else {
+        setDeviceType('desktop');
+        setTopBarHeight(90);
+      }
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -149,15 +158,18 @@ const App: React.FC = () => {
   };
 
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false): AppleData => {
-    const baseSize = deviceType === 'mobile' ? 60 : 85;
+    let baseSize = 70;
+    if (deviceType === 'mobile') baseSize = 55;
+    if (deviceType === 'desktop') baseSize = 85;
+
     return {
       id,
       x,
       y,
       z: Math.random() * 40 - 20, 
-      size: baseSize + Math.random() * 20,
+      size: baseSize + Math.random() * 15,
       rotation: Math.random() * 360,
-      delay: isSpawnSequence ? Math.random() * 0.5 : 0,
+      delay: isSpawnSequence ? Math.random() * 0.4 : 0,
       color: 'red', 
       variationSeed: Math.random(),
     };
@@ -165,15 +177,16 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = 18;
+    const count = deviceType === 'mobile' ? 12 : 18; // Less particles on mobile for performance
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const force = 120 + Math.random() * 180;
+      const force = 100 + Math.random() * 150;
       const type = types[Math.floor(Math.random() * types.length)];
       let color = '#ef4444'; 
-      let size = 6 + Math.random() * 8;
+      let size = (4 + Math.random() * 6) * (deviceType === 'mobile' ? 0.8 : 1);
+      
       if (type === 'flesh') color = '#fffbeb';
       else if (type === 'juice') color = '#dc2626';
       else if (type === 'seed') color = '#451a03';
@@ -198,7 +211,7 @@ const App: React.FC = () => {
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
     }, 850);
-  }, []);
+  }, [deviceType]);
 
   const runCountdown = useCallback(() => {
     setStatus(GameStatus.COUNTDOWN);
@@ -239,10 +252,11 @@ const App: React.FC = () => {
 
     const totalApples = WIN_TARGET;
     const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight - TOP_BAR_HEIGHT;
+    const screenHeight = window.innerHeight - topBarHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.5)));
+    // Intelligent grid calculation based on orientation
+    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.8)));
     const rows = Math.ceil(totalApples / cols);
     
     const xAvailable = 100 - (SIDE_MARGIN * 2);
@@ -255,8 +269,8 @@ const App: React.FC = () => {
     let count = 0;
     for (let r = 0; r < rows && count < totalApples; r++) {
       for (let c = 0; c < cols && count < totalApples; c++) {
-        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.7);
-        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.7);
+        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.8);
+        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.8);
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
         const y = 5 + (r * cellHeight) + (cellHeight / 2) + jitterY;
         initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true));
@@ -268,7 +282,7 @@ const App: React.FC = () => {
     setTimeout(() => {
       runCountdown();
     }, 1200);
-  }, [createAppleAt, runCountdown]);
+  }, [createAppleAt, runCountdown, topBarHeight]);
 
   const quitToHome = useCallback(() => {
     playSound('click');
@@ -365,53 +379,57 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* HUD Bar (Top Bar) */}
-      <div 
-        className="relative w-full z-[3000] px-4 flex justify-between items-center bg-stone-900 border-b border-white/10 shadow-lg shrink-0 overflow-visible"
-        style={{ height: `${TOP_BAR_HEIGHT}px` }}
-      >
-        <div className="flex flex-col">
-          <h1 className="text-white text-lg md:text-xl font-black italic tracking-tighter leading-none">
-            {selectedTheme.name.toUpperCase()} <span className="text-red-500">HARVEST</span>
-          </h1>
-          <p className="text-[8px] text-white/50 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
-        </div>
+      {/* HUD Bar (Top Bar) - Hidden on the first page (IDLE) */}
+      {status !== GameStatus.IDLE && (
+        <div 
+          className="relative w-full z-[3000] px-4 md:px-6 flex justify-between items-center bg-stone-900 border-b border-white/10 shadow-lg shrink-0 overflow-visible transition-all duration-300"
+          style={{ height: `${topBarHeight}px` }}
+        >
+          <div className="flex flex-col">
+            <h1 className="text-white text-base sm:text-lg md:text-xl font-black italic tracking-tighter leading-none">
+              {selectedTheme.name.toUpperCase()} <span className="text-red-500">HARVEST</span>
+            </h1>
+            <p className="text-[7px] sm:text-[8px] text-white/50 uppercase font-bold tracking-widest mt-0.5 sm:mt-1">
+              Popped: {score} / {WIN_TARGET}
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-           {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
-             <div className="flex flex-col gap-1 items-end">
-               <button 
-                 onPointerDown={endGame}
-                 className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase shadow-lg border border-red-400/30 w-24"
-               >
-                 END GAME
-               </button>
-               <button 
-                 onPointerDown={initGame}
-                 className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase border border-white/10 w-24"
-               >
-                 RESTART
-               </button>
-             </div>
-           )}
-           
-           {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
-             <div className="flex items-center gap-4 bg-black/40 px-5 py-2.5 rounded-xl border border-white/10">
-                <div className="flex flex-col items-center">
-                  <span className="text-white/40 text-[7px] uppercase font-black">Time</span>
-                  <span className={`text-lg font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                    {timeLeft < 10 ? `0:0${timeLeft}` : `0:${timeLeft}`}
-                  </span>
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+             {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+               <div className="flex flex-col gap-1 items-end">
+                 <button 
+                   onPointerDown={endGame}
+                   className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-red-400/30 w-16 sm:w-24"
+                 >
+                   QUIT
+                 </button>
+                 <button 
+                   onPointerDown={initGame}
+                   className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase border border-white/10 w-16 sm:w-24"
+                 >
+                   RESTART
+                 </button>
+               </div>
+             )}
+             
+             {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+               <div className="flex items-center gap-2 sm:gap-4 bg-black/40 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-white/10">
+                  <div className="flex flex-col items-center">
+                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">Time</span>
+                    <span className={`text-xs sm:text-base md:text-lg font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                      {timeLeft < 10 ? `0:0${timeLeft}` : `0:${timeLeft}`}
+                    </span>
+                  </div>
+                  <div className="w-[1px] h-4 sm:h-6 bg-white/10"></div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">Score</span>
+                    <span className="text-xs sm:text-base md:text-lg font-mono font-black text-green-400">{score}</span>
+                  </div>
                 </div>
-                <div className="w-[1px] h-6 bg-white/10"></div>
-                <div className="flex flex-col items-center">
-                  <span className="text-white/40 text-[7px] uppercase font-black">Score</span>
-                  <span className="text-lg font-mono font-black text-green-400">{score}</span>
-                </div>
-              </div>
-           )}
+             )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Game Area Container */}
       <div className="relative flex-grow w-full bg-stone-950 overflow-hidden">
@@ -440,7 +458,7 @@ const App: React.FC = () => {
         {/* Countdown Overlay */}
         {status === GameStatus.COUNTDOWN && (
           <div className="absolute inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
-            <div key={countdown} className={`text-[10rem] md:text-[18rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
+            <div key={countdown} className={`text-[6rem] sm:text-[10rem] md:text-[18rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
               {countdown}
             </div>
           </div>
@@ -448,38 +466,38 @@ const App: React.FC = () => {
 
         {/* Landing Page (IDLE / First Page) */}
         {status === GameStatus.IDLE && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-4">
-            <div className="bg-stone-900/95 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
-              <div className="relative w-full h-40 flex items-center justify-center mb-8">
-                <div className="relative w-40 h-40 animate-[bounce_4s_infinite_ease-in-out]">
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto">
+            <div className="bg-stone-900/95 p-6 sm:p-10 md:p-14 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative my-auto">
+              <div className="relative w-full h-32 sm:h-40 flex items-center justify-center mb-6 sm:mb-8">
+                <div className="relative w-32 sm:w-40 h-32 sm:h-40 animate-[bounce_4s_infinite_ease-in-out]">
                   <img src={HERO_APPLE_IMAGE} className="w-full h-full object-contain rounded-full border-4 border-white/5 shadow-2xl" alt="Apple Hero" />
                 </div>
               </div>
-              <h2 className="text-3xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-10 text-sm font-medium text-center">Harvest 100 apples to reveal the scenery!</p>
-              <button onPointerDown={startThemeSelection} className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-xl uppercase tracking-widest shadow-xl">START</button>
+              <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
+              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 100 apples to reveal the scenery!</p>
+              <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
         )}
 
         {/* Theme Selection Page (Second Page) */}
         {status === GameStatus.SELECT_THEME && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 overflow-y-auto scrollbar-hide">
-            <div className="bg-stone-900/90 p-6 md:p-10 rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
-              <h2 className="text-2xl font-black text-white mb-2 italic tracking-tighter uppercase text-center">SELECT THEME</h2>
-              <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mb-6 text-center">Choose your harvest location</p>
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto scrollbar-hide">
+            <div className="bg-stone-900/90 p-5 sm:p-10 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
+              <h2 className="text-xl sm:text-2xl font-black text-white mb-2 italic tracking-tighter uppercase text-center">SELECT THEME</h2>
+              <p className="text-white/40 text-[7px] sm:text-[9px] font-bold uppercase tracking-widest mb-4 sm:mb-6 text-center">Choose your harvest location</p>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full mb-8 max-h-[45vh] overflow-y-auto p-1 scrollbar-hide">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 w-full mb-6 sm:mb-8 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto p-1 scrollbar-hide">
                 {THEMES.map((theme) => (
                   <button 
                     key={theme.id}
                     onPointerDown={() => { playSound('click'); setSelectedTheme(theme); }}
-                    className={`py-3 px-2 rounded-xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
+                    className={`py-2 sm:py-3 px-2 rounded-lg sm:rounded-xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
                       ${selectedTheme.id === theme.id 
                         ? 'bg-red-600 border-red-400 scale-[1.02] shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
                         : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}
                   >
-                    <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>
+                    <span className={`text-[8px] sm:text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>
                       {theme.name}
                     </span>
                   </button>
@@ -489,13 +507,13 @@ const App: React.FC = () => {
               <div className="flex flex-col gap-2 w-full sm:max-w-xs">
                 <button
                   onPointerDown={initGame}
-                  className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-lg uppercase tracking-widest shadow-lg"
+                  className="w-full py-3 sm:py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-lg sm:rounded-2xl transition-all active:scale-95 text-base sm:text-lg uppercase tracking-widest shadow-lg"
                 >
                   START HARVEST
                 </button>
                 <button
                   onPointerDown={() => setStatus(GameStatus.IDLE)}
-                  className="w-full py-1 text-white/30 hover:text-white uppercase font-black text-[9px] transition-colors"
+                  className="w-full py-1 text-white/30 hover:text-white uppercase font-black text-[8px] sm:text-[10px] transition-colors"
                 >
                   BACK
                 </button>
@@ -506,20 +524,18 @@ const App: React.FC = () => {
 
         {/* Win/Loss Screens (Last Page) */}
         {(status === GameStatus.WON || status === GameStatus.LOST) && (
-          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4">
-            <div className="bg-stone-900/90 p-8 md:p-12 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative">
-              <div className="text-6xl mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
-              <h2 className={`text-3xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
+            <div className="bg-stone-900/90 p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative my-auto">
+              <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
                 {status === GameStatus.WON ? 'VICTORY' : 'FROZEN'}
               </h2>
-              <p className="text-white/80 font-bold text-lg mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
-              {feedback && <div className="text-white/40 italic text-[11px] mb-8 px-4 text-center leading-relaxed">"{feedback}"</div>}
-              <div className="space-y-3 w-full">
-                {/* RETRY returns to the first page (Landing Page) */}
-                <button onPointerDown={quitToHome} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-md uppercase shadow-lg">RETRY</button>
-                {/* CHANGE THEME returns to the second page (Selection Page) */}
-                <button onPointerDown={startThemeSelection} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all active:scale-95 text-[10px] uppercase tracking-widest border border-white/10">CHANGE THEME</button>
-                <button onPointerDown={quitToHome} className="w-full py-1.5 text-white/30 hover:text-white uppercase font-black text-[9px] transition-colors">MAIN MENU</button>
+              <p className="text-white/80 font-bold text-base sm:text-lg mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
+              {feedback && <div className="text-white/40 italic text-[10px] sm:text-[11px] mb-6 sm:mb-8 px-4 text-center leading-relaxed">"{feedback}"</div>}
+              <div className="space-y-2 sm:space-y-3 w-full">
+                <button onPointerDown={quitToHome} className="w-full py-3 sm:py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-lg sm:rounded-2xl transition-all active:scale-95 text-sm sm:text-md uppercase shadow-lg">RETRY</button>
+                <button onPointerDown={startThemeSelection} className="w-full py-2 sm:py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-lg sm:rounded-2xl transition-all active:scale-95 text-[9px] sm:text-[10px] uppercase tracking-widest border border-white/10">CHANGE THEME</button>
+                <button onPointerDown={quitToHome} className="w-full py-1 text-white/30 hover:text-white uppercase font-black text-[8px] sm:text-[9px] transition-colors">MAIN MENU</button>
               </div>
             </div>
           </div>
