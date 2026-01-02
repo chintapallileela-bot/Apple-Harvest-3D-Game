@@ -8,7 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 100;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const SAFE_TOP_MARGIN = 20; 
+const TOP_BAR_HEIGHT = 80; // height in pixels
 const SAFE_BOTTOM_MARGIN = 10;
 const SIDE_MARGIN = 5;
 
@@ -235,14 +235,14 @@ const App: React.FC = () => {
 
     const totalApples = WIN_TARGET;
     const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
+    const screenHeight = window.innerHeight - TOP_BAR_HEIGHT;
     const aspectRatio = screenWidth / screenHeight;
 
     const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.5)));
     const rows = Math.ceil(totalApples / cols);
     
     const xAvailable = 100 - (SIDE_MARGIN * 2);
-    const yAvailable = 100 - SAFE_TOP_MARGIN - SAFE_BOTTOM_MARGIN;
+    const yAvailable = 100 - SAFE_BOTTOM_MARGIN - 5; // Extra padding
     
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
@@ -254,7 +254,7 @@ const App: React.FC = () => {
         const jitterX = (Math.random() - 0.5) * (cellWidth * 0.7);
         const jitterY = (Math.random() - 0.5) * (cellHeight * 0.7);
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
-        const y = SAFE_TOP_MARGIN + (r * cellHeight) + (cellHeight / 2) + jitterY;
+        const y = 5 + (r * cellHeight) + (cellHeight / 2) + jitterY;
         initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true));
         count++;
       }
@@ -272,6 +272,28 @@ const App: React.FC = () => {
     setApples([]);
     setParticles([]);
   }, []);
+
+  const stopGame = useCallback(() => {
+    playSound('click');
+    setStatus(GameStatus.SELECT_THEME);
+    setApples([]);
+    setParticles([]);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  const endGame = useCallback(() => {
+    playSound('click');
+    if (score >= WIN_TARGET) {
+      setStatus(GameStatus.WON);
+      playSound('win');
+    } else {
+      setStatus(GameStatus.LOST);
+      playSound('lose');
+    }
+    setApples([]);
+    setParticles([]);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, [score]);
 
   const handleAppleClick = useCallback((id: string) => {
     if (status !== GameStatus.PLAYING) return;
@@ -329,140 +351,169 @@ const App: React.FC = () => {
     }
   }, [status]);
 
+  const showGameBackground = status !== GameStatus.IDLE;
+
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
+    <div className="flex flex-col w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* HUD (In-Game Only) */}
-      {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
-        <div className="fixed top-0 left-0 w-full z-[2000] p-4 flex justify-between items-start pointer-events-none">
-          <div className="bg-black/40 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 shadow-xl pointer-events-none">
-            <h1 className="text-white text-xl font-black italic tracking-tighter leading-none">
-              {selectedTheme.name.toUpperCase()} <span className="text-red-500">HARVEST</span>
-            </h1>
-            <p className="text-[9px] text-white/50 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
-          </div>
-          <div className="flex items-center gap-4 bg-black/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 shadow-xl">
-            <div className="flex flex-col items-center">
-              <span className="text-white/40 text-[8px] uppercase font-black">Time</span>
-              <span className={`text-xl font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                :{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
-              </span>
-            </div>
-            <div className="w-[1px] h-8 bg-white/10"></div>
-            <div className="flex flex-col items-center">
-              <span className="text-white/40 text-[8px] uppercase font-black">Score</span>
-              <span className="text-xl font-mono font-black text-green-400">{score}</span>
-            </div>
-          </div>
+      {/* HUD Bar (Top Bar) - Dedicated space */}
+      <div 
+        className="relative w-full z-[3000] px-4 flex justify-between items-center bg-stone-900 border-b border-white/10 shadow-lg shrink-0 overflow-visible"
+        style={{ height: `${TOP_BAR_HEIGHT}px` }}
+      >
+        <div className="flex flex-col">
+          <h1 className="text-white text-lg md:text-xl font-black italic tracking-tighter leading-none">
+            {selectedTheme.name.toUpperCase()} <span className="text-red-500">HARVEST</span>
+          </h1>
+          <p className="text-[8px] text-white/50 uppercase font-bold tracking-widest mt-1">Popped: {score} / {WIN_TARGET}</p>
         </div>
-      )}
 
-      {/* Main Background Area (Updates based on theme) */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={selectedTheme.image} 
-          className="w-full h-full object-cover brightness-75 scale-105 transition-all duration-1000 ease-in-out" 
-          alt="Background"
-        />
-        <div className="absolute inset-0 bg-black/20"></div>
+        {/* Action Buttons & Stats */}
+        <div className="flex items-center gap-3">
+           {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+             <div className="flex flex-col gap-1 items-end">
+               <button 
+                 onPointerDown={endGame}
+                 className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase shadow-lg border border-red-400/30 w-24"
+               >
+                 END GAME
+               </button>
+               <button 
+                 onPointerDown={initGame}
+                 className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase border border-white/10 w-24"
+               >
+                 RESTART
+               </button>
+             </div>
+           )}
+           
+           {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+             <div className="flex items-center gap-4 bg-black/40 px-5 py-2.5 rounded-xl border border-white/10">
+                <div className="flex flex-col items-center">
+                  <span className="text-white/40 text-[7px] uppercase font-black">Time</span>
+                  <span className={`text-lg font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                    {timeLeft < 10 ? `0:0${timeLeft}` : `0:${timeLeft}`}
+                  </span>
+                </div>
+                <div className="w-[1px] h-6 bg-white/10"></div>
+                <div className="flex flex-col items-center">
+                  <span className="text-white/40 text-[7px] uppercase font-black">Score</span>
+                  <span className="text-lg font-mono font-black text-green-400">{score}</span>
+                </div>
+              </div>
+           )}
+        </div>
       </div>
 
-      {/* Game Content Layer */}
-      <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
-        <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
-          {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
-          {particles.map(p => <Particle key={p.id} data={p} />)}
+      {/* Game Area Container - Below Top Bar */}
+      <div className="relative flex-grow w-full bg-stone-950 overflow-hidden">
+        
+        {/* Main Background Area - Revealed only after IDLE */}
+        <div className={`absolute inset-0 z-0 transition-opacity duration-700 ease-in-out ${showGameBackground ? 'opacity-100' : 'opacity-0'}`}>
+          <img 
+            src={selectedTheme.image} 
+            className="w-full h-full object-cover brightness-[0.8] scale-105 transition-transform duration-1000" 
+            alt="Background"
+          />
+          <div className="absolute inset-0 bg-black/20"></div>
         </div>
-      </div>
 
-      {/* Countdown Overlay */}
-      {status === GameStatus.COUNTDOWN && (
-        <div className="fixed inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
-          <div key={countdown} className={`text-[12rem] md:text-[20rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
-            {countdown}
+        {/* Apple/Game Layer */}
+        <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
+          <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
+            {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
+            {particles.map(p => <Particle key={p.id} data={p} />)}
           </div>
         </div>
-      )}
 
-      {/* Landing Page (IDLE) */}
-      {status === GameStatus.IDLE && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-xl p-4">
-          <div className="bg-stone-900/90 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
-            <div className="relative w-full h-48 flex items-center justify-center mb-8">
-              <div className="relative w-48 h-48 animate-[bounce_4s_infinite_ease-in-out]">
-                <img src={HERO_APPLE_IMAGE} className="w-full h-full object-contain rounded-full border-4 border-white/5 shadow-2xl" alt="Apple Hero" />
+        {/* Countdown Overlay (Inside Game Area) */}
+        {status === GameStatus.COUNTDOWN && (
+          <div className="absolute inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
+            <div key={countdown} className={`text-[10rem] md:text-[18rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
+              {countdown}
+            </div>
+          </div>
+        )}
+
+        {/* Landing Page (IDLE) - Full Screen Overlay but behind top bar? No, usually landing covers all. 
+            User said background and apples below top bar. I will keep overlays within game area or full screen depending on context. */}
+        {status === GameStatus.IDLE && (
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4">
+            <div className="bg-stone-900/90 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
+              <div className="relative w-full h-40 flex items-center justify-center mb-8">
+                <div className="relative w-40 h-40 animate-[bounce_4s_infinite_ease-in-out]">
+                  <img src={HERO_APPLE_IMAGE} className="w-full h-full object-contain rounded-full border-4 border-white/5 shadow-2xl" alt="Apple Hero" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
+              <p className="text-white/60 mb-10 text-sm font-medium text-center">Harvest 100 apples in 60 seconds!</p>
+              <button onPointerDown={startThemeSelection} className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-xl uppercase tracking-widest shadow-xl">START</button>
+            </div>
+          </div>
+        )}
+
+        {/* Theme Selection Page */}
+        {status === GameStatus.SELECT_THEME && (
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 overflow-y-auto scrollbar-hide">
+            <div className="bg-stone-900/90 p-6 md:p-10 rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
+              <h2 className="text-2xl font-black text-white mb-2 italic tracking-tighter uppercase text-center">SELECT THEME</h2>
+              <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mb-6 text-center">Choose your harvest location</p>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full mb-8 max-h-[45vh] overflow-y-auto p-1 scrollbar-hide">
+                {THEMES.map((theme) => (
+                  <button 
+                    key={theme.id}
+                    onPointerDown={() => { playSound('click'); setSelectedTheme(theme); }}
+                    className={`py-3 px-2 rounded-xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
+                      ${selectedTheme.id === theme.id 
+                        ? 'bg-red-600 border-red-400 scale-[1.02] shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
+                        : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}
+                  >
+                    <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>
+                      {theme.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2 w-full sm:max-w-xs">
+                <button
+                  onPointerDown={initGame}
+                  className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-lg uppercase tracking-widest shadow-lg"
+                >
+                  START HARVEST
+                </button>
+                <button
+                  onPointerDown={() => setStatus(GameStatus.IDLE)}
+                  className="w-full py-1 text-white/30 hover:text-white uppercase font-black text-[9px] transition-colors"
+                >
+                  BACK
+                </button>
               </div>
             </div>
-            <h2 className="text-4xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-            <p className="text-white/60 mb-10 text-lg font-medium text-center">Test your reflexes in stunning locations!</p>
-            <button onPointerDown={startThemeSelection} className="w-full py-6 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-2xl uppercase tracking-widest shadow-xl">START</button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Theme Selection Page - UPDATED: Transparent bg to see background change instantly */}
-      {status === GameStatus.SELECT_THEME && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/30 backdrop-blur-md p-4 overflow-y-auto scrollbar-hide">
-          <div className="bg-stone-900/85 p-6 md:p-10 rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
-            <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase text-center">SELECT THEME</h2>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-6 text-center">Click a theme to see it live</p>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full mb-8 max-h-[55vh] overflow-y-auto p-1 scrollbar-hide">
-              {THEMES.map((theme) => (
-                <button 
-                  key={theme.id}
-                  onPointerDown={() => { playSound('click'); setSelectedTheme(theme); }}
-                  className={`py-4 px-3 rounded-xl text-center transition-all duration-300 border-2 flex flex-col items-center justify-center gap-1
-                    ${selectedTheme.id === theme.id 
-                      ? 'bg-red-600 border-red-400 scale-[1.03] shadow-[0_0_20px_rgba(239,68,68,0.4)]' 
-                      : 'bg-white/5 border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}
-                >
-                  <span className={`text-[11px] sm:text-xs font-black uppercase tracking-widest transition-colors leading-tight ${selectedTheme.id === theme.id ? 'text-white' : 'text-white/70'}`}>
-                    {theme.name}
-                  </span>
-                  {selectedTheme.id === theme.id && (
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-3 w-full sm:max-w-xs">
-              <button
-                onPointerDown={initGame}
-                className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-xl uppercase tracking-widest shadow-[0_10px_40px_rgba(220,38,38,0.4)]"
-              >
-                START GAME
-              </button>
-              <button
-                onPointerDown={() => setStatus(GameStatus.IDLE)}
-                className="w-full py-2 text-white/30 hover:text-white uppercase font-black text-[10px] transition-colors"
-              >
-                BACK
-              </button>
+        {/* Win/Loss Screens (The "Last Page") */}
+        {(status === GameStatus.WON || status === GameStatus.LOST) && (
+          <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4">
+            <div className="bg-stone-900/90 p-8 md:p-12 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative">
+              <div className="text-6xl mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
+              <h2 className={`text-3xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
+                {status === GameStatus.WON ? 'VICTORY' : 'FROZEN'}
+              </h2>
+              <p className="text-white/80 font-bold text-lg mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
+              {feedback && <div className="text-white/40 italic text-[11px] mb-8 px-4 text-center leading-relaxed">"{feedback}"</div>}
+              <div className="space-y-3 w-full">
+                <button onPointerDown={initGame} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-md uppercase shadow-lg">RETRY</button>
+                <button onPointerDown={startThemeSelection} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all active:scale-95 text-[10px] uppercase tracking-widest border border-white/10">CHANGE THEME</button>
+                <button onPointerDown={quitToHome} className="w-full py-1.5 text-white/30 hover:text-white uppercase font-black text-[9px] transition-colors">MAIN MENU</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Win/Loss Screens */}
-      {(status === GameStatus.WON || status === GameStatus.LOST) && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-          <div className="bg-stone-900/90 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative">
-            <div className="text-7xl mb-6">{status === GameStatus.WON ? '🧺' : '❄️'}</div>
-            <h2 className={`text-4xl font-black mb-2 italic uppercase ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
-              {status === GameStatus.WON ? 'VICTORY' : 'FROZEN'}
-            </h2>
-            <p className="text-white/80 font-bold text-xl mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
-            {feedback && <div className="text-white/40 italic text-sm mb-10 px-4 text-center">"{feedback}"</div>}
-            <div className="space-y-3 w-full">
-              <button onPointerDown={initGame} className="w-full py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-lg uppercase shadow-lg">RETRY</button>
-              <button onPointerDown={startThemeSelection} className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all active:scale-95 text-xs uppercase tracking-widest border border-white/10">CHANGE THEME</button>
-              <button onPointerDown={quitToHome} className="w-full py-2 text-white/30 hover:text-white uppercase font-black text-[10px] transition-colors">MAIN MENU</button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
