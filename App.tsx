@@ -149,7 +149,6 @@ const App: React.FC = () => {
   };
 
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false): AppleData => {
-    // Increased base size so they "cover" the background better
     const baseSize = deviceType === 'mobile' ? 60 : 85;
     return {
       id,
@@ -222,10 +221,13 @@ const App: React.FC = () => {
     }, 1000);
   }, []);
 
-  const startThemeSelection = () => {
+  const startThemeSelection = useCallback(() => {
     playSound('click');
     setStatus(GameStatus.SELECT_THEME);
-  };
+    setScore(0);
+    setApples([]);
+    setParticles([]);
+  }, []);
 
   const initGame = useCallback(() => {
     playSound('click');
@@ -346,7 +348,6 @@ const App: React.FC = () => {
     }
   }, [status]);
 
-  // Logic to reveal background based on score
   const isGameActive = [
     GameStatus.SPAWNING, 
     GameStatus.COUNTDOWN, 
@@ -355,7 +356,6 @@ const App: React.FC = () => {
     GameStatus.LOST
   ].includes(status);
 
-  // Calculate background opacity based on score progression
   const backgroundOpacity = (status === GameStatus.WON || status === GameStatus.LOST) 
     ? 1 
     : isGameActive 
@@ -446,7 +446,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Landing Page (IDLE) */}
+        {/* Landing Page (IDLE / First Page) */}
         {status === GameStatus.IDLE && (
           <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-4">
             <div className="bg-stone-900/95 p-10 md:p-14 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative">
@@ -462,7 +462,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Theme Selection Page */}
+        {/* Theme Selection Page (Second Page) */}
         {status === GameStatus.SELECT_THEME && (
           <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 overflow-y-auto scrollbar-hide">
             <div className="bg-stone-900/90 p-6 md:p-10 rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
@@ -504,7 +504,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Win/Loss Screens */}
+        {/* Win/Loss Screens (Last Page) */}
         {(status === GameStatus.WON || status === GameStatus.LOST) && (
           <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4">
             <div className="bg-stone-900/90 p-8 md:p-12 rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative">
@@ -515,7 +515,9 @@ const App: React.FC = () => {
               <p className="text-white/80 font-bold text-lg mb-4 text-center">Popped {score} / {WIN_TARGET} apples</p>
               {feedback && <div className="text-white/40 italic text-[11px] mb-8 px-4 text-center leading-relaxed">"{feedback}"</div>}
               <div className="space-y-3 w-full">
+                {/* RETRY returns to the first page (Landing Page) */}
                 <button onPointerDown={quitToHome} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all active:scale-95 text-md uppercase shadow-lg">RETRY</button>
+                {/* CHANGE THEME returns to the second page (Selection Page) */}
                 <button onPointerDown={startThemeSelection} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl transition-all active:scale-95 text-[10px] uppercase tracking-widest border border-white/10">CHANGE THEME</button>
                 <button onPointerDown={quitToHome} className="w-full py-1.5 text-white/30 hover:text-white uppercase font-black text-[9px] transition-colors">MAIN MENU</button>
               </div>
