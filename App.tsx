@@ -8,8 +8,8 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const SAFE_BOTTOM_MARGIN = 10;
-const SIDE_MARGIN = 5;
+const SAFE_BOTTOM_MARGIN = 12;
+const SIDE_MARGIN = 6;
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -33,7 +33,7 @@ const App: React.FC = () => {
       
       if (width < 640) {
         setDeviceType('mobile');
-        setTopBarHeight(width < height ? 70 : 60); // Smaller bar in landscape mobile
+        setTopBarHeight(width < height ? 70 : 60);
       } else if (width < 1024) {
         setDeviceType('tablet');
         setTopBarHeight(80);
@@ -158,10 +158,9 @@ const App: React.FC = () => {
   };
 
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false, color: 'red' | 'green' = 'red'): AppleData => {
-    // Sizing slightly reduced for 200 count density
-    let baseSize = 55;
-    if (deviceType === 'mobile') baseSize = 40;
-    if (deviceType === 'desktop') baseSize = 65;
+    let baseSize = 52;
+    if (deviceType === 'mobile') baseSize = 38;
+    if (deviceType === 'desktop') baseSize = 62;
 
     return {
       id,
@@ -257,22 +256,20 @@ const App: React.FC = () => {
     setFeedback(null);
     setParticles([]);
 
-    const totalApples = WIN_TARGET; // 200
+    const totalApples = WIN_TARGET; 
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight - topBarHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    // Grid calculation for 200 apples
-    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.5)));
+    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.6)));
     const rows = Math.ceil(totalApples / cols);
     
     const xAvailable = 100 - (SIDE_MARGIN * 2);
-    const yAvailable = 100 - SAFE_BOTTOM_MARGIN - 5; 
+    const yAvailable = 100 - SAFE_BOTTOM_MARGIN - 8; 
     
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
     
-    // Shuffle indices for exactly 100 green and 100 red
     const greenIndices = new Set<number>();
     while (greenIndices.size < 100) {
       greenIndices.add(Math.floor(Math.random() * totalApples));
@@ -282,10 +279,10 @@ const App: React.FC = () => {
     let count = 0;
     for (let r = 0; r < rows && count < totalApples; r++) {
       for (let c = 0; c < cols && count < totalApples; c++) {
-        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.9);
-        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.9);
+        const jitterX = (Math.random() - 0.5) * (cellWidth * 1.1);
+        const jitterY = (Math.random() - 0.5) * (cellHeight * 1.1);
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
-        const y = 5 + (r * cellHeight) + (cellHeight / 2) + jitterY;
+        const y = 8 + (r * cellHeight) + (cellHeight / 2) + jitterY;
         const color = greenIndices.has(count) ? 'green' : 'red';
         initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true, color));
         count++;
@@ -503,7 +500,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 200 apples to reveal the scenery!</p>
+              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 200 mixed apples to reveal the scenery!</p>
               <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
