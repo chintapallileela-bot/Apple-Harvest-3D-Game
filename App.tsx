@@ -6,7 +6,7 @@ import Apple from './components/Apple';
 import Particle from './components/Particle';
 import { GoogleGenAI } from '@google/genai';
 
-const WIN_TARGET = 100;
+const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
 const SAFE_BOTTOM_MARGIN = 10;
 const SIDE_MARGIN = 5;
@@ -158,18 +158,19 @@ const App: React.FC = () => {
   };
 
   const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false, color: 'red' | 'green' = 'red'): AppleData => {
-    let baseSize = 70;
-    if (deviceType === 'mobile') baseSize = 55;
-    if (deviceType === 'desktop') baseSize = 85;
+    // Sizing slightly reduced for 200 count density
+    let baseSize = 55;
+    if (deviceType === 'mobile') baseSize = 40;
+    if (deviceType === 'desktop') baseSize = 65;
 
     return {
       id,
       x,
       y,
       z: Math.random() * 40 - 20, 
-      size: baseSize + Math.random() * 15,
+      size: baseSize + Math.random() * 12,
       rotation: Math.random() * 360,
-      delay: isSpawnSequence ? Math.random() * 0.4 : 0,
+      delay: isSpawnSequence ? Math.random() * 0.6 : 0,
       color, 
       variationSeed: Math.random(),
     };
@@ -177,7 +178,7 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = deviceType === 'mobile' ? 12 : 18; 
+    const count = deviceType === 'mobile' ? 10 : 15; 
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
@@ -185,8 +186,8 @@ const App: React.FC = () => {
       const force = 100 + Math.random() * 150;
       const type = types[Math.floor(Math.random() * types.length)];
       
-      let color = '#ef4444'; // default red
-      let size = (4 + Math.random() * 6) * (deviceType === 'mobile' ? 0.8 : 1);
+      let color = '#ef4444'; 
+      let size = (3 + Math.random() * 5) * (deviceType === 'mobile' ? 0.8 : 1);
       
       if (type === 'flesh') {
         color = apple.color === 'green' ? '#f0fdf4' : '#fffbeb';
@@ -256,12 +257,13 @@ const App: React.FC = () => {
     setFeedback(null);
     setParticles([]);
 
-    const totalApples = WIN_TARGET;
+    const totalApples = WIN_TARGET; // 200
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight - topBarHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.8)));
+    // Grid calculation for 200 apples
+    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.5)));
     const rows = Math.ceil(totalApples / cols);
     
     const xAvailable = 100 - (SIDE_MARGIN * 2);
@@ -270,9 +272,9 @@ const App: React.FC = () => {
     const cellWidth = xAvailable / cols;
     const cellHeight = yAvailable / rows;
     
-    // Shuffle indices for 50 green apples (Increased from 25)
+    // Shuffle indices for exactly 100 green and 100 red
     const greenIndices = new Set<number>();
-    while (greenIndices.size < 50) {
+    while (greenIndices.size < 100) {
       greenIndices.add(Math.floor(Math.random() * totalApples));
     }
 
@@ -280,8 +282,8 @@ const App: React.FC = () => {
     let count = 0;
     for (let r = 0; r < rows && count < totalApples; r++) {
       for (let c = 0; c < cols && count < totalApples; c++) {
-        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.8);
-        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.8);
+        const jitterX = (Math.random() - 0.5) * (cellWidth * 0.9);
+        const jitterY = (Math.random() - 0.5) * (cellHeight * 0.9);
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
         const y = 5 + (r * cellHeight) + (cellHeight / 2) + jitterY;
         const color = greenIndices.has(count) ? 'green' : 'red';
@@ -327,9 +329,8 @@ const App: React.FC = () => {
         playSound('pop');
         const newScore = score + 1;
         setScore(newScore);
-        if (newScore % 5 === 0) playSound('chime', newScore);
+        if (newScore % 10 === 0) playSound('chime', newScore);
         if (newScore >= WIN_TARGET) {
-          // Transition to Viewing phase for 1 minute before Victory screen
           setStatus(GameStatus.VIEWING);
           setTimeLeft(60); 
           playSound('win');
@@ -368,12 +369,12 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? "Short congratulatory message for popping 100 apples. Thematic but concise."
-            : "Short encouraging message for missing the 100 apple harvest.";
+            ? "Short congratulatory message for popping 200 apples. Thematic but concise."
+            : "Short encouraging message for missing the 200 apple harvest.";
           const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
           setFeedback(res.text || null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "Harvest complete!" : "Better luck next harvest.");
+          setFeedback(status === GameStatus.WON ? "Massive Harvest complete!" : "The harvest was too heavy this time.");
         }
       };
       generateMessage();
@@ -398,7 +399,6 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col w-full h-full bg-black overflow-hidden font-sans select-none touch-none">
       
-      {/* HUD Bar (Top Bar) - Hidden on the first page (IDLE) */}
       {status !== GameStatus.IDLE && (
         <div 
           className="relative w-full z-[3000] px-4 md:px-6 flex justify-between items-center bg-stone-900 border-b border-white/10 shadow-lg shrink-0 overflow-visible transition-all duration-300"
@@ -465,10 +465,8 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Game Area Container */}
       <div className="relative flex-grow w-full bg-stone-950 overflow-hidden">
         
-        {/* Main Background Area - Progressive Reveal */}
         <div 
           className="absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out" 
           style={{ opacity: backgroundOpacity }}
@@ -481,7 +479,6 @@ const App: React.FC = () => {
           <div className="absolute inset-0 bg-black/10"></div>
         </div>
 
-        {/* Apple/Game Layer */}
         <div className="relative w-full h-full overflow-hidden" style={{ perspective: '1200px' }}>
           <div className="absolute inset-0 z-20 pointer-events-auto" style={{ transformStyle: 'preserve-3d' }}>
             {apples.map(a => <Apple key={a.id} data={a} onClick={handleAppleClick} />)}
@@ -489,7 +486,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Countdown Overlay */}
         {status === GameStatus.COUNTDOWN && (
           <div className="absolute inset-0 z-[2500] flex flex-col items-center justify-center pointer-events-none bg-black/30 backdrop-blur-sm">
             <div key={countdown} className={`text-[6rem] sm:text-[10rem] md:text-[18rem] font-black italic text-center ${countdown === 'GO!' ? 'text-red-500' : 'text-white'} animate-[countdown-pop_0.6s_forwards]`}>
@@ -498,7 +494,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Landing Page (IDLE / First Page) */}
         {status === GameStatus.IDLE && (
           <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto">
             <div className="bg-stone-900/95 p-6 sm:p-10 md:p-14 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl overflow-hidden relative my-auto">
@@ -508,13 +503,12 @@ const App: React.FC = () => {
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 100 apples to reveal the scenery!</p>
+              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 200 apples to reveal the scenery!</p>
               <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
         )}
 
-        {/* Theme Selection Page (Second Page) */}
         {status === GameStatus.SELECT_THEME && (
           <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto scrollbar-hide">
             <div className="bg-stone-900/90 p-5 sm:p-10 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/10 max-w-2xl w-full flex flex-col items-center shadow-2xl my-auto backdrop-blur-xl">
@@ -556,7 +550,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Win/Loss Screens (Last Page) */}
         {(status === GameStatus.WON || status === GameStatus.LOST) && (
           <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
             <div className="bg-stone-900/90 p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-white/10 max-w-md w-full text-center shadow-2xl relative my-auto">

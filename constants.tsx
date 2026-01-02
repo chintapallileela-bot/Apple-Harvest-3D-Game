@@ -3,7 +3,7 @@ import React from 'react';
 import { Theme } from './types';
 
 export const GAME_DURATION = 60;
-export const TOTAL_APPLES = 100;
+export const TOTAL_APPLES = 200;
 
 export const THEMES: Theme[] = [
   { id: 'avatar', name: 'Avatar', image: 'https://i.postimg.cc/tCCMJVcV/Avatar.jpg', unlocked: true },
