@@ -8,8 +8,9 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const SAFE_BOTTOM_MARGIN = 12;
-const SIDE_MARGIN = 6;
+const TOP_OFFSET = 5; // Percentage from top
+const BOTTOM_OFFSET = 5; // Percentage from bottom
+const SIDE_MARGIN = 2; // Percentage from sides
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GameStatus>(GameStatus.IDLE);
@@ -157,27 +158,23 @@ const App: React.FC = () => {
     } catch (e) {}
   };
 
-  const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false, color: 'red' | 'green' = 'red'): AppleData => {
-    let baseSize = 52;
-    if (deviceType === 'mobile') baseSize = 38;
-    if (deviceType === 'desktop') baseSize = 62;
-
+  const createAppleAt = useCallback((id: string, x: number, y: number, isSpawnSequence = false, color: 'red' | 'green' = 'red', size: number): AppleData => {
     return {
       id,
       x,
       y,
-      z: Math.random() * 40 - 20, 
-      size: baseSize + Math.random() * 12,
-      rotation: Math.random() * 360,
-      delay: isSpawnSequence ? Math.random() * 0.6 : 0,
+      z: 0, 
+      size: size * 1.05, // Slight overlap to ensure gapless appearance
+      rotation: 0, 
+      delay: isSpawnSequence ? Math.random() * 0.8 : 0,
       color, 
-      variationSeed: Math.random(),
+      variationSeed: 0,
     };
-  }, [deviceType]);
+  }, []);
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = deviceType === 'mobile' ? 10 : 15; 
+    const count = deviceType === 'mobile' ? 8 : 12; 
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
@@ -186,7 +183,7 @@ const App: React.FC = () => {
       const type = types[Math.floor(Math.random() * types.length)];
       
       let color = '#ef4444'; 
-      let size = (3 + Math.random() * 5) * (deviceType === 'mobile' ? 0.8 : 1);
+      let size = (2 + Math.random() * 4) * (deviceType === 'mobile' ? 0.8 : 1);
       
       if (type === 'flesh') {
         color = apple.color === 'green' ? '#f0fdf4' : '#fffbeb';
@@ -261,30 +258,36 @@ const App: React.FC = () => {
     const screenHeight = window.innerHeight - topBarHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.6)));
-    const rows = Math.ceil(totalApples / cols);
+    // Strict grid calculation for "no gaps" look
+    // rows * cols = 200, and cols/rows approx aspectRatio
+    const rows = Math.round(Math.sqrt(totalApples / aspectRatio));
+    const cols = Math.ceil(totalApples / rows);
     
-    const xAvailable = 100 - (SIDE_MARGIN * 2);
-    const yAvailable = 100 - SAFE_BOTTOM_MARGIN - 8; 
+    const usableWidthPercent = 100 - (SIDE_MARGIN * 2);
+    const usableHeightPercent = 100 - TOP_OFFSET - BOTTOM_OFFSET;
     
-    const cellWidth = xAvailable / cols;
-    const cellHeight = yAvailable / rows;
+    const cellWidthPercent = usableWidthPercent / cols;
+    const cellHeightPercent = usableHeightPercent / rows;
     
-    const greenIndices = new Set<number>();
-    while (greenIndices.size < 100) {
-      greenIndices.add(Math.floor(Math.random() * totalApples));
-    }
+    // Convert percentage cell width to actual pixels for the apple component size
+    const appleSizePx = Math.min(
+      (cellWidthPercent / 100) * screenWidth,
+      (cellHeightPercent / 100) * screenHeight
+    );
+
+    // Create randomized color list (100 Red, 100 Green)
+    const colors: ('red' | 'green')[] = [
+      ...Array(100).fill('red'),
+      ...Array(100).fill('green')
+    ].sort(() => Math.random() - 0.5);
 
     const initialBatch: AppleData[] = [];
     let count = 0;
     for (let r = 0; r < rows && count < totalApples; r++) {
       for (let c = 0; c < cols && count < totalApples; c++) {
-        const jitterX = (Math.random() - 0.5) * (cellWidth * 1.1);
-        const jitterY = (Math.random() - 0.5) * (cellHeight * 1.1);
-        const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
-        const y = 8 + (r * cellHeight) + (cellHeight / 2) + jitterY;
-        const color = greenIndices.has(count) ? 'green' : 'red';
-        initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true, color));
+        const x = SIDE_MARGIN + (c * cellWidthPercent) + (cellWidthPercent / 2);
+        const y = TOP_OFFSET + (r * cellHeightPercent) + (cellHeightPercent / 2);
+        initialBatch.push(createAppleAt(`apple-${count}-${Date.now()}`, x, y, true, colors[count], appleSizePx));
         count++;
       }
     }
@@ -326,7 +329,7 @@ const App: React.FC = () => {
         playSound('pop');
         const newScore = score + 1;
         setScore(newScore);
-        if (newScore % 10 === 0) playSound('chime', newScore);
+        if (newScore % 20 === 0) playSound('chime', newScore);
         if (newScore >= WIN_TARGET) {
           setStatus(GameStatus.VIEWING);
           setTimeLeft(60); 
@@ -371,7 +374,7 @@ const App: React.FC = () => {
           const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
           setFeedback(res.text || null);
         } catch (e) {
-          setFeedback(status === GameStatus.WON ? "Massive Harvest complete!" : "The harvest was too heavy this time.");
+          setFeedback(status === GameStatus.WON ? "Massive Tiled Harvest complete!" : "The grid was too dense this time.");
         }
       };
       generateMessage();
@@ -500,7 +503,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4 italic tracking-tighter uppercase leading-none text-center">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest 200 mixed apples to reveal the scenery!</p>
+              <p className="text-white/60 mb-8 sm:mb-10 text-xs sm:text-sm font-medium text-center">Harvest a gapless wall of 200 mixed apples!</p>
               <button onPointerDown={startThemeSelection} className="w-full py-4 sm:py-5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl sm:rounded-2xl transition-all active:scale-95 text-lg sm:text-xl uppercase tracking-widest shadow-xl">START</button>
             </div>
           </div>
