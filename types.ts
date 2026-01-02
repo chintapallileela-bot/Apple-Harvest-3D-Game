@@ -6,7 +6,8 @@ export enum GameStatus {
   COUNTDOWN = 'COUNTDOWN',
   PLAYING = 'PLAYING',
   WON = 'WON',
-  LOST = 'LOST'
+  LOST = 'LOST',
+  VIEWING = 'VIEWING'
 }
 
 export interface Theme {

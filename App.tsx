@@ -177,7 +177,7 @@ const App: React.FC = () => {
 
   const triggerBurst = useCallback((apple: AppleData) => {
     const newParticles: ParticleData[] = [];
-    const count = deviceType === 'mobile' ? 12 : 18; // Less particles on mobile for performance
+    const count = deviceType === 'mobile' ? 12 : 18; 
     const types: ('flesh' | 'juice' | 'seed' | 'leaf')[] = ['flesh', 'juice', 'seed', 'leaf'];
 
     for (let i = 0; i < count; i++) {
@@ -255,7 +255,6 @@ const App: React.FC = () => {
     const screenHeight = window.innerHeight - topBarHeight;
     const aspectRatio = screenWidth / screenHeight;
 
-    // Intelligent grid calculation based on orientation
     const cols = Math.max(1, Math.floor(Math.sqrt(totalApples * aspectRatio * 1.8)));
     const rows = Math.ceil(totalApples / cols);
     
@@ -317,7 +316,9 @@ const App: React.FC = () => {
         setScore(newScore);
         if (newScore % 5 === 0) playSound('chime', newScore);
         if (newScore >= WIN_TARGET) {
-          setStatus(GameStatus.WON);
+          // Instead of immediate victory, transition to Viewing phase for 1 minute
+          setStatus(GameStatus.VIEWING);
+          setTimeLeft(60); 
           playSound('win');
         }
         return prev.filter(a => a.id !== id);
@@ -327,10 +328,14 @@ const App: React.FC = () => {
   }, [status, score, triggerBurst]);
 
   useEffect(() => {
-    if (status === GameStatus.PLAYING) {
+    if (status === GameStatus.PLAYING || status === GameStatus.VIEWING) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
+            if (status === GameStatus.VIEWING) {
+              setStatus(GameStatus.WON);
+              return 0;
+            }
             setStatus(GameStatus.LOST);
             playSound('lose');
             return 0;
@@ -367,10 +372,11 @@ const App: React.FC = () => {
     GameStatus.COUNTDOWN, 
     GameStatus.PLAYING, 
     GameStatus.WON, 
-    GameStatus.LOST
+    GameStatus.LOST,
+    GameStatus.VIEWING
   ].includes(status);
 
-  const backgroundOpacity = (status === GameStatus.WON || status === GameStatus.LOST) 
+  const backgroundOpacity = (status === GameStatus.WON || status === GameStatus.LOST || status === GameStatus.VIEWING) 
     ? 1 
     : isGameActive 
       ? 0.15 + (0.85 * (score / WIN_TARGET)) 
@@ -387,44 +393,59 @@ const App: React.FC = () => {
         >
           <div className="flex flex-col">
             <h1 className="text-white text-base sm:text-lg md:text-xl font-black italic tracking-tighter leading-none">
-              {selectedTheme.name.toUpperCase()} <span className="text-red-500">HARVEST</span>
+              {status === GameStatus.VIEWING ? 'VIEWING SCENERY' : selectedTheme.name.toUpperCase()} <span className="text-red-500">{status === GameStatus.VIEWING ? 'REVEALED' : 'HARVEST'}</span>
             </h1>
             <p className="text-[7px] sm:text-[8px] text-white/50 uppercase font-bold tracking-widest mt-0.5 sm:mt-1">
-              Popped: {score} / {WIN_TARGET}
+              {status === GameStatus.VIEWING ? 'Full Background Unlocked' : `Popped: ${score} / ${WIN_TARGET}`}
             </p>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-             {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+             {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING || status === GameStatus.VIEWING) && (
                <div className="flex flex-col gap-1 items-end">
-                 <button 
-                   onPointerDown={endGame}
-                   className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-red-400/30 w-16 sm:w-24"
-                 >
-                   QUIT
-                 </button>
-                 <button 
-                   onPointerDown={initGame}
-                   className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase border border-white/10 w-16 sm:w-24"
-                 >
-                   RESTART
-                 </button>
+                 {status === GameStatus.VIEWING ? (
+                   <button 
+                     onPointerDown={() => setStatus(GameStatus.WON)}
+                     className="bg-green-600 hover:bg-green-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-green-400/30 w-16 sm:w-24"
+                   >
+                     FINISH
+                   </button>
+                 ) : (
+                   <button 
+                     onPointerDown={endGame}
+                     className="bg-red-600 hover:bg-red-500 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase shadow-lg border border-red-400/30 w-16 sm:w-24"
+                   >
+                     QUIT
+                   </button>
+                 )}
+                 {status !== GameStatus.VIEWING && (
+                   <button 
+                     onPointerDown={initGame}
+                     className="bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-black text-[7px] sm:text-[9px] uppercase border border-white/10 w-16 sm:w-24"
+                   >
+                     RESTART
+                   </button>
+                 )}
                </div>
              )}
              
-             {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING) && (
+             {(status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING || status === GameStatus.VIEWING) && (
                <div className="flex items-center gap-2 sm:gap-4 bg-black/40 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-white/10">
                   <div className="flex flex-col items-center">
-                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">Time</span>
+                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">{status === GameStatus.VIEWING ? 'Revealing' : 'Time'}</span>
                     <span className={`text-xs sm:text-base md:text-lg font-mono font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
                       {timeLeft < 10 ? `0:0${timeLeft}` : `0:${timeLeft}`}
                     </span>
                   </div>
-                  <div className="w-[1px] h-4 sm:h-6 bg-white/10"></div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">Score</span>
-                    <span className="text-xs sm:text-base md:text-lg font-mono font-black text-green-400">{score}</span>
-                  </div>
+                  {status !== GameStatus.VIEWING && (
+                    <>
+                      <div className="w-[1px] h-4 sm:h-6 bg-white/10"></div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-white/40 text-[6px] sm:text-[7px] uppercase font-black">Score</span>
+                        <span className="text-xs sm:text-base md:text-lg font-mono font-black text-green-400">{score}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
              )}
           </div>
