@@ -1,6 +1,6 @@
 
 {
-  "id": "com.appleharvest.challenge.v7",
+  "id": "com.appleharvest.challenge.v8",
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
   "description": "An immersive 3D harvest challenge. Pop 200 scattered apples to reveal stunning scenery themes. Features high-quality graphics and a dedicated reveal phase.",
@@ -53,18 +53,33 @@
   ],
   "screenshots": [
     {
-      "src": "https://i.postimg.cc/jjksdFZx/Fantasy.webp",
-      "sizes": "1280x817",
-      "type": "image/webp",
-      "form_factor": "wide",
-      "label": "Desktop Scenery View"
+     
+      "src": "https://i.postimg.cc/gcVNpry9/p1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Main Menu and Logo"
     },
     {
-      "src": "https://i.postimg.cc/XJC0N7rg/Scifi.webp",
-      "sizes": "900x450",
-      "type": "image/webp",
-      "form_factor": "wide",
-      "label": "Sci-Fi Scenery View"
+      "src": "https://i.postimg.cc/hP4bqsPv/p2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Theme Selection Interface"
+    },
+    {
+      "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Active Apple Harvest Gameplay"
+    },
+    {
+      "src": "https://i.postimg.cc/mr7F912Q/p4.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Harvest Success Screen"
     }
   ]
 }
