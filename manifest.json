@@ -4,8 +4,8 @@
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
   "description": "An immersive harvest game where you pop 200 scattered apples to reveal stunning scenery themes. Experience a 10-second reveal phase to enjoy the unlocked background.",
-  "start_url": ".",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0c0a09",
   "theme_color": "#ef4444",
@@ -32,7 +32,7 @@
       "name": "Start Harvest",
       "short_name": "Harvest",
       "description": "Jump straight into the apple harvest",
-      "url": "/",
+      "url": "./",
       "icons": [{ "src": "https://i.postimg.cc/tRK1gf7C/Red-Apple-Shortcut.png", "sizes": "192x192" }]
     }
   ],
