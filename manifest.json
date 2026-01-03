@@ -1,0 +1,19 @@
+
+{
+  "name": "Apple Harvest Challenge",
+  "short_name": "AppleHarvest",
+  "description": "Pop 200 apples to reveal stunning scenery in this immersive 3D harvest challenge.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0a09",
+  "theme_color": "#ef4444",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/nc3MbVTw/Apple.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
