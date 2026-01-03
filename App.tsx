@@ -8,7 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const WIN_TARGET = 200;
 const HERO_APPLE_IMAGE = "https://i.postimg.cc/nc3MbVTw/Apple.jpg";
-const TOP_OFFSET = 18; // Slightly reduced but still clears HUD
+const TOP_OFFSET = 18; 
 const BOTTOM_OFFSET = 10;
 const SIDE_MARGIN = 6;
 const REVEAL_DURATION = 10;
@@ -41,7 +41,6 @@ const App: React.FC = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       
-      // Responsive Breakpoints
       if (width < 640) {
         setDeviceType('mobile');
         setTopBarHeight(width < height ? 85 : 75);
@@ -256,7 +255,6 @@ const App: React.FC = () => {
     const cellWidth = (100 - (SIDE_MARGIN * 2)) / cols;
     const cellHeight = (100 - TOP_OFFSET - BOTTOM_OFFSET) / rows;
 
-    // Optimized sizing for touch vs mouse
     let baseSize = deviceType === 'mobile' ? 42 : (deviceType === 'desktop' ? 55 : 48);
 
     let appleCount = 0;
@@ -365,10 +363,12 @@ const App: React.FC = () => {
     }
   }, [status]);
 
+  // Updated background opacity logic:
+  // Starts at 0.4 visibility during gameplay so the background is "there", scaling to 1.
   const backgroundOpacity = (status === GameStatus.WON || status === GameStatus.LOST || status === GameStatus.VIEWING) 
     ? 1 
     : (status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING)
-      ? 0.15 + (0.85 * (score / WIN_TARGET)) 
+      ? 0.4 + (0.6 * (score / WIN_TARGET)) 
       : 0;
 
   const showHUD = status !== GameStatus.IDLE;
