@@ -7,18 +7,21 @@
     <title>Apple Harvest Challenge</title>
     <meta name="description" content="Pop 200 apples to reveal stunning scenery in this immersive 3D harvest challenge." />
     <meta name="theme-color" content="#ef4444" />
+    
+    <!-- PWA Primary Meta -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Apple Harvest" />
+    <meta name="application-name" content="Apple Harvest" />
     
-    <!-- Microsoft / Windows Tile -->
-    <meta name="msapplication-TileColor" content="#ef4444" />
-    <meta name="msapplication-TileImage" content="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
-    
+    <!-- Icons and Manifest -->
+    <link rel="apple-touch-icon" sizes="192x192" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
     <link rel="manifest" href="manifest.json" />
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
@@ -27,9 +30,6 @@
       @keyframes float {
         0%, 100% { transform: translate3d(-50%, -50%, 0px); }
         50% { transform: translate3d(-50%, -58%, 25px); }
-      }
-      @keyframes shimmer {
-        100% { transform: translateX(100%); }
       }
       @keyframes apple-pop {
         0% { transform: scale(0) translate3d(-50%, -50%, 0); opacity: 0; }
@@ -46,9 +46,7 @@
           transform: translate3d(0, 0, 0) scale(1) rotateX(0deg) rotateY(0deg) rotateZ(0deg); 
           opacity: 1; 
         }
-        40% {
-          opacity: 1;
-        }
+        40% { opacity: 1; }
         100% { 
           transform: translate3d(var(--vx), var(--vy), 150px) scale(0) rotateX(360deg) rotateY(720deg) rotateZ(180deg); 
           opacity: 0; 
@@ -66,45 +64,40 @@
         height: 100%;
         width: 100%;
       }
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      .bg-3d-image {
-        width: 100%;
-        height: 100vh;
-        height: 100dvh;
-        object-fit: cover;
-        object-position: center;
-      }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
-  }
-}
-</script>
-</head>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+      }
+    }
+    </script>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
-      // Clean and simple Service Worker registration for maximum compatibility
+      // Simplified registration to ensure origin matching in sandboxed environments
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+          // Using a strictly relative path without leading dots or slashes
+          // helps resolve against the current origin regardless of deployment subdomain.
           navigator.serviceWorker.register('sw.js')
-            .then(reg => {
-              console.log('Service Worker Registered successfully. Scope:', reg.scope);
+            .then(registration => {
+              console.log('SW Registered. Scope:', registration.scope);
             })
-            .catch(err => {
-              console.warn('Service Worker registration skipped or failed:', err);
+            .catch(error => {
+              // Gracefully handle origin mismatch or security errors in preview environments
+              if (error.name === 'SecurityError') {
+                console.warn('Service Worker registration blocked by security policy. This is common in some sandboxed preview environments.');
+              } else {
+                console.error('SW Registration failed:', error);
+              }
             });
         });
       }
