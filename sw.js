@@ -1,10 +1,12 @@
 
-const CACHE_NAME = 'apple-harvest-v2';
+const CACHE_NAME = 'apple-harvest-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   'https://cdn.tailwindcss.com',
+  'https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png',
+  'https://i.postimg.cc/tRK1gf7C/Red-Apple-Shortcut.png',
   'https://i.postimg.cc/nc3MbVTw/Apple.jpg',
   'https://i.postimg.cc/rFjWN5Jg/Green-Apple.jpg'
 ];
@@ -27,13 +29,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const networkFetch = fetch(event.request).then((networkResponse) => {
-        // Cache new static assets or images on the fly
         if (
           networkResponse && 
           networkResponse.status === 200 && 
@@ -44,7 +44,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Fallback for offline if no network
         return cachedResponse;
       });
 
