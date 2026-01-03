@@ -11,6 +11,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Apple Harvest" />
+    
+    <!-- Microsoft / Windows Tile -->
+    <meta name="msapplication-TileColor" content="#ef4444" />
+    <meta name="msapplication-TileImage" content="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
+    
     <link rel="apple-touch-icon" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
     <link rel="icon" type="image/png" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
     <link rel="manifest" href="manifest.json" />
@@ -91,19 +96,14 @@
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
+      // Using a standard registration block that PWA auditors expect
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Use a strictly relative path to let the browser resolve the 
-          // Service Worker origin based on the current document.
-          navigator.serviceWorker.register('sw.js')
-            .then((reg) => {
-              console.log('SW registered successfully with scope:', reg.scope);
-            })
-            .catch((err) => {
-              console.warn('SW registration failed:', err.message);
-              // We use console.warn because SW registration failure is 
-              // common in sandboxed environments and shouldn't stop the app.
-            });
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
         });
       }
     </script>
