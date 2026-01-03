@@ -96,13 +96,16 @@
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
+      // Clean and simple Service Worker registration for maximum compatibility
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('sw.js').then(function(reg) {
-            console.log('SW scope:', reg.scope);
-          }).catch(function(err) {
-            console.warn('SW error:', err);
-          });
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => {
+              console.log('Service Worker Registered successfully. Scope:', reg.scope);
+            })
+            .catch(err => {
+              console.warn('Service Worker registration skipped or failed:', err);
+            });
         });
       }
     </script>
