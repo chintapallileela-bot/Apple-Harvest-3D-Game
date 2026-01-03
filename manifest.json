@@ -19,7 +19,7 @@
   "icons": [
     {
       "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
