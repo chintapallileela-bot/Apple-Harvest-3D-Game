@@ -55,28 +55,28 @@
     {
      
       "src": "https://i.postimg.cc/gcVNpry9/p1.png",
-      "sizes": "1080x1920",
+      "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Main Menu and Logo"
     },
     {
       "src": "https://i.postimg.cc/hP4bqsPv/p2.png",
-      "sizes": "1080x1920",
+      "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Theme Selection Interface"
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
-      "sizes": "1080x1920",
+      "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Active Apple Harvest Gameplay"
     },
     {
       "src": "https://i.postimg.cc/mr7F912Q/p4.png",
-      "sizes": "1080x1920",
+      "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Harvest Success Screen"
