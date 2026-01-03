@@ -7,11 +7,13 @@
     <title>Apple Harvest Challenge</title>
     <meta name="description" content="Pop 200 apples to reveal stunning scenery in this immersive 3D harvest challenge." />
     <meta name="theme-color" content="#ef4444" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Apple Harvest" />
     <link rel="apple-touch-icon" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
-    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png" />
+    <link rel="manifest" href="manifest.json" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
@@ -91,11 +93,17 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').then((reg) => {
-            console.log('SW registered:', reg.scope);
-          }).catch((err) => {
-            console.error('SW registration failed:', err);
-          });
+          // Use a strictly relative path to let the browser resolve the 
+          // Service Worker origin based on the current document.
+          navigator.serviceWorker.register('sw.js')
+            .then((reg) => {
+              console.log('SW registered successfully with scope:', reg.scope);
+            })
+            .catch((err) => {
+              console.warn('SW registration failed:', err.message);
+              // We use console.warn because SW registration failure is 
+              // common in sandboxed environments and shouldn't stop the app.
+            });
         });
       }
     </script>

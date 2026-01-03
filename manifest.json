@@ -1,10 +1,10 @@
 
 {
-  "id": "com.appleharvest.challenge.v2",
+  "id": "com.appleharvest.challenge.v5",
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
   "description": "An immersive harvest game where you pop 200 scattered apples to reveal stunning scenery themes. Experience a 10-second reveal phase to enjoy the unlocked background.",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0c0a09",
@@ -14,6 +14,18 @@
   "lang": "en-US",
   "categories": ["games", "entertainment"],
   "icons": [
+    {
+      "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
       "sizes": "512x512",
@@ -42,14 +54,14 @@
       "sizes": "1280x720",
       "type": "image/webp",
       "form_factor": "wide",
-      "label": "Fantasy Scenery"
+      "label": "Fantasy Theme Gameplay"
     },
     {
       "src": "https://i.postimg.cc/XJC0N7rg/Scifi.webp",
       "sizes": "720x1280",
       "type": "image/webp",
       "form_factor": "narrow",
-      "label": "Sci-Fi Scenery"
+      "label": "Mobile Harvest View"
     }
   ]
 }
