@@ -4,11 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Apple Harvest</title>
+    <title>Apple Harvest Challenge</title>
+    <meta name="description" content="Pop 200 apples to reveal stunning scenery in this immersive 3D harvest challenge." />
     <meta name="theme-color" content="#ef4444" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-title" content="Apple Harvest" />
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/nc3MbVTw/Apple.jpg" />
+    <link rel="manifest" href="./manifest.json" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
@@ -84,11 +87,11 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then((reg) => {
+          navigator.serviceWorker.register('./sw.js').then((reg) => {
             console.log('SW registered:', reg);
           }).catch((err) => {
             console.log('SW registration failed:', err);
