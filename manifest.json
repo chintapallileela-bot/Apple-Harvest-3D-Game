@@ -1,21 +1,19 @@
 
 {
-  "id": "com.appleharvest.challenge.v13",
+  "id": "com.appleharvest.challenge.v14",
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
-  "description": "An immersive 3D harvest challenge. Pop 200 scattered apples to reveal stunning scenery themes. Features high-quality graphics and a dedicated reveal phase.",
+  "description": "An immersive 3D harvest challenge where you pop 200 scattered apples to reveal stunning scenery. Optimized for all devices with full offline support.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "minimal-ui"],
   "background_color": "#0c0a09",
   "theme_color": "#ef4444",
-  "orientation": "portrait",
+  "orientation": "any",
   "dir": "ltr",
   "lang": "en-US",
-  "categories": ["games", "entertainment", "nature", "lifestyle"],
-  "prefer_related_applications": false,
-  "related_applications": [],
+  "categories": ["games", "entertainment", "nature"],
   "icons": [
     {
       "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
@@ -40,7 +38,7 @@
     {
       "name": "Start Harvest",
       "short_name": "Harvest",
-      "description": "Launch the apple harvesting game immediately.",
+      "description": "Quick launch into the apple harvesting experience.",
       "url": "./index.html",
       "icons": [
         { 
@@ -57,31 +55,28 @@
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Main Menu - Start your harvest journey"
+      "label": "The start of your apple collection journey."
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Harvest Mode - Tap to collect apples"
+      "label": "Interactive 3D gameplay in action."
     },
     {
       "src": "https://i.postimg.cc/gcVNpry9/p1.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Desktop Experience"
+      "label": "Desktop view optimized for large screens."
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Immersive 3D Scenery"
+      "label": "Immersive landscape environment."
     }
-  ],
-  "launch_handler": {
-    "client_mode": ["focus-existing", "auto"]
-  }
+  ]
 }

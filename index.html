@@ -82,16 +82,15 @@
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
-      // Service Worker registration with enhanced detection logic
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('./sw.js', { scope: './' })
-            .then(function(registration) {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            }, function(err) {
-              console.log('ServiceWorker registration failed: ', err);
-            });
-        });
+      // Standard PWABuilder Recommended Service Worker registration
+      if (typeof navigator.serviceWorker !== 'undefined') {
+        navigator.serviceWorker.register('sw.js')
+          .then(function(reg) {
+            console.log('Service Worker Registered Successfully');
+          })
+          .catch(function(err) {
+            console.log('Service Worker Registration Failed', err);
+          });
       }
     </script>
   </body>
