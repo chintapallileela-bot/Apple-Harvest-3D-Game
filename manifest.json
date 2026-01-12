@@ -1,6 +1,6 @@
 
 {
-  "id": "com.appleharvest.challenge.v11",
+  "id": "com.appleharvest.challenge.v12",
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
   "description": "An immersive 3D harvest challenge. Pop 200 scattered apples to reveal stunning scenery themes. Features high-quality graphics and a dedicated reveal phase.",
@@ -14,6 +14,7 @@
   "dir": "ltr",
   "lang": "en-US",
   "categories": ["games", "entertainment", "nature", "lifestyle"],
+  "iarc_rating_id": "e726477e-70a1-4084-5a3e-7ae7780df969",
   "prefer_related_applications": false,
   "related_applications": [],
   "icons": [
@@ -27,13 +28,7 @@
       "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -57,28 +52,35 @@
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Main Menu and Logo"
+      "label": "Main Menu"
     },
     {
       "src": "https://i.postimg.cc/hP4bqsPv/p2.png",
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Theme Selection Interface"
+      "label": "Theme Selection"
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Active Apple Harvest Gameplay"
+      "label": "Gameplay"
     },
     {
-      "src": "https://i.postimg.cc/mr7F912Q/p4.png",
-      "sizes": "720x1280",
+      "src": "https://i.postimg.cc/gcVNpry9/p1.png",
+      "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Harvest Success Screen"
+      "form_factor": "wide",
+      "label": "Desktop Home View"
+    },
+    {
+      "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Game View"
     }
   ]
 }

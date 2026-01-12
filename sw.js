@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'apple-harvest-v17';
+const CACHE_NAME = 'apple-harvest-v18';
 const ASSETS_TO_CACHE = [
   './',
   'index.html',
@@ -11,17 +11,16 @@ const ASSETS_TO_CACHE = [
   'https://i.postimg.cc/rFjWN5Jg/Green-Apple.jpg'
 ];
 
-// Install: Cache core assets and activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Pre-caching critical assets');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
   self.skipWaiting();
 });
 
-// Activate: Purge old versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
@@ -35,40 +34,36 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch: Network-First for HTML, Cache-First for static assets
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Handle navigation requests (index.html)
+  // Navigation: Network-First with Cache Fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match('./index.html') || caches.match('index.html');
-        })
+      fetch(event.request).catch(() => {
+        return caches.match('./index.html') || caches.match('index.html');
+      })
     );
     return;
   }
 
-  // Handle static assets
+  // Assets: Cache-First, then Network
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
+
       return fetch(event.request).then((networkResponse) => {
-        // Don't cache streaming content or cross-origin POSTs
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+        // Cache successful requests (including cross-origin/opaque ones for images)
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
         return networkResponse;
       }).catch(() => {
-        // General fallback
-        return new Response('Offline content unavailable', { status: 503 });
+        // Silent fail for non-essential assets
+        return new Response('Offline', { status: 404 });
       });
     })
   );
