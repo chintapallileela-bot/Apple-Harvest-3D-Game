@@ -1,16 +1,16 @@
 
 {
-  "id": "com.appleharvest.challenge.v14",
+  "id": "com.appleharvest.challenge.v15",
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
-  "description": "An immersive 3D harvest challenge where you pop 200 scattered apples to reveal stunning scenery. Optimized for all devices with full offline support.",
+  "description": "An immersive 3D harvest challenge. Pop 200 small red apples to reveal stunning scenery themes. High-quality graphics and full offline support.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "minimal-ui"],
   "background_color": "#0c0a09",
   "theme_color": "#ef4444",
-  "orientation": "any",
+  "orientation": "portrait",
   "dir": "ltr",
   "lang": "en-US",
   "categories": ["games", "entertainment", "nature"],
@@ -36,9 +36,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Start Harvest",
+      "name": "Start New Harvest",
       "short_name": "Harvest",
-      "description": "Quick launch into the apple harvesting experience.",
+      "description": "Begin your apple collection journey.",
       "url": "./index.html",
       "icons": [
         { 
@@ -55,28 +55,28 @@
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "The start of your apple collection journey."
+      "label": "The Apple Harvest Menu"
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Interactive 3D gameplay in action."
+      "label": "Gameplay: Harvest those apples!"
     },
     {
       "src": "https://i.postimg.cc/gcVNpry9/p1.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Desktop view optimized for large screens."
+      "label": "Desktop Optimized Experience"
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Immersive landscape environment."
+      "label": "Stunning Reveal Environments"
     }
   ]
 }

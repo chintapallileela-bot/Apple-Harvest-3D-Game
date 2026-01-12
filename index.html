@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Apple Harvest Challenge</title>
-    <meta name="description" content="Pop 200 apples to reveal stunning scenery in this immersive 3D harvest challenge." />
+    <meta name="description" content="Pop 200 small red apples to reveal stunning scenery in this immersive 3D harvest challenge." />
     <meta name="theme-color" content="#ef4444" />
     
     <!-- PWA Primary Meta -->
@@ -82,15 +82,9 @@
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
-      // Standard PWABuilder Recommended Service Worker registration
+      // Exact PWABuilder registration snippet
       if (typeof navigator.serviceWorker !== 'undefined') {
         navigator.serviceWorker.register('sw.js')
-          .then(function(reg) {
-            console.log('Service Worker Registered Successfully');
-          })
-          .catch(function(err) {
-            console.log('Service Worker Registration Failed', err);
-          });
       }
     </script>
   </body>

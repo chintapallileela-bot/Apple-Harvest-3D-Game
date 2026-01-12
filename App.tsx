@@ -189,10 +189,10 @@ const App: React.FC = () => {
       const type = types[Math.floor(Math.random() * types.length)];
       let color = '#ef4444';
       let size = (3 + Math.random() * 5) * (deviceType === 'mobile' ? 0.7 : 1);
-      if (type === 'flesh') color = apple.color === 'green' ? '#f0fdf4' : '#fffbeb';
-      else if (type === 'juice') color = apple.color === 'green' ? '#bef264' : '#ef4444';
+      if (type === 'flesh') color = '#fffbeb';
+      else if (type === 'juice') color = '#ef4444';
       else if (type === 'seed') color = '#451a03';
-      else if (type === 'leaf') color = apple.color === 'green' ? '#16a34a' : '#22c55e';
+      else if (type === 'leaf') color = '#22c55e';
 
       newParticles.push({
         id: `p-${Date.now()}-${i}`,
@@ -240,9 +240,8 @@ const App: React.FC = () => {
     setFeedback(null);
     setParticles([]);
 
-    const colors: ('red' | 'green')[] = [
-      ...Array(100).fill('red'), ...Array(100).fill('green')
-    ].sort(() => Math.random() - 0.5);
+    // Requirement: All Small Red Apples
+    const colors: ('red' | 'green')[] = Array(WIN_TARGET).fill('red');
 
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
@@ -255,7 +254,8 @@ const App: React.FC = () => {
     const cellWidth = (100 - (SIDE_MARGIN * 2)) / cols;
     const cellHeight = (100 - TOP_OFFSET - BOTTOM_OFFSET) / rows;
 
-    let baseSize = deviceType === 'mobile' ? 42 : (deviceType === 'desktop' ? 55 : 48);
+    // Requirement: "Small" apples
+    let baseSize = deviceType === 'mobile' ? 38 : (deviceType === 'desktop' ? 48 : 42);
 
     let appleCount = 0;
     for (let r = 0; r < rows; r++) {
@@ -265,7 +265,7 @@ const App: React.FC = () => {
         const jitterY = (Math.random() - 0.5) * cellHeight * 0.85;
         const x = SIDE_MARGIN + (c * cellWidth) + (cellWidth / 2) + jitterX;
         const y = TOP_OFFSET + (r * cellHeight) + (cellHeight / 2) + jitterY;
-        initialBatch.push(createAppleAt(`apple-${appleCount}-${Date.now()}`, x, y, true, colors[appleCount], baseSize + Math.random() * 12));
+        initialBatch.push(createAppleAt(`apple-${appleCount}-${Date.now()}`, x, y, true, 'red', baseSize + Math.random() * 10));
         appleCount++;
       }
       if (appleCount >= WIN_TARGET) break;
@@ -351,7 +351,7 @@ const App: React.FC = () => {
         try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const prompt = status === GameStatus.WON 
-            ? "Short congratulatory message for popping 200 scattered apples."
+            ? "Short congratulatory message for popping 200 small red apples."
             : "Short encouraging message for missing the harvest.";
           const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
           setFeedback(res.text || null);
@@ -363,13 +363,8 @@ const App: React.FC = () => {
     }
   }, [status]);
 
-  // Updated background opacity logic:
-  // Starts at 0.4 visibility during gameplay so the background is "there", scaling to 1.
-  const backgroundOpacity = (status === GameStatus.WON || status === GameStatus.LOST || status === GameStatus.VIEWING) 
-    ? 1 
-    : (status === GameStatus.PLAYING || status === GameStatus.COUNTDOWN || status === GameStatus.SPAWNING)
-      ? 0.4 + (0.6 * (score / WIN_TARGET)) 
-      : 0;
+  // Requirement: "Background must be there"
+  const backgroundOpacity = (status === GameStatus.IDLE) ? 0 : 1.0;
 
   const showHUD = status !== GameStatus.IDLE;
   const showGameStats = status !== GameStatus.IDLE && status !== GameStatus.SELECT_THEME;
@@ -469,7 +464,7 @@ const App: React.FC = () => {
                 <img src={HERO_APPLE_IMAGE} className="w-32 sm:w-48 h-32 sm:h-48 object-contain rounded-full border-4 border-white/5 shadow-[0_0_60px_rgba(255,0,0,0.2)] animate-[bounce_5s_infinite_ease-in-out]" alt="Apple Hero" />
               </div>
               <h2 className="text-3xl sm:text-5xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none">APPLE HARVEST</h2>
-              <p className="text-white/60 mb-10 sm:mb-14 text-sm sm:text-lg font-medium leading-relaxed px-4">The seasonal harvest is here. Collect all 200 apples to unlock breathtaking views.</p>
+              <p className="text-white/60 mb-10 sm:mb-14 text-sm sm:text-lg font-medium leading-relaxed px-4">Pop 200 small red apples to unlock breathtaking views. The seasonal harvest is here.</p>
               <button onPointerDown={startThemeSelection} className="w-full py-5 sm:py-7 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl sm:rounded-[2.5rem] transition-all active:scale-95 text-xl sm:text-3xl uppercase tracking-widest shadow-2xl border-t border-white/20">START HARVEST</button>
             </div>
           </div>

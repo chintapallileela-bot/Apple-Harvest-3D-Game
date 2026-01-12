@@ -1,6 +1,7 @@
 
-const CACHE_NAME = 'apple-harvest-v22';
+const CACHE_NAME = 'apple-harvest-v25';
 const ASSETS_TO_PRECACHE = [
+  './',
   'index.html',
   'manifest.json',
   'https://cdn.tailwindcss.com',
@@ -34,9 +35,7 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
       
       return fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
@@ -47,9 +46,8 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Essential fallback for index.html to ensure PWA installability
         if (event.request.mode === 'navigate') {
-          return caches.match('index.html');
+          return caches.match('index.html') || caches.match('./');
         }
       });
     })
