@@ -1,6 +1,7 @@
 
-const CACHE_NAME = 'apple-harvest-v15';
+const CACHE_NAME = 'apple-harvest-v16';
 const ASSETS_TO_CACHE = [
+  './',
   'index.html',
   'manifest.json',
   'sw.js',
@@ -16,7 +17,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[Service Worker] Pre-caching offline assets');
-      // Use strictly relative paths to ensure they resolve within the current subdomain/origin
       return cache.addAll(ASSETS_TO_CACHE).catch(err => {
         console.warn('[Service Worker] Pre-cache failed for some assets:', err);
       });
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch Event: Robust Cache-First with Network Fallback
+// Fetch Event: Cache-First with Network Fallback
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
@@ -49,7 +49,7 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request).then((networkResponse) => {
-        // Cache new successful GET requests
+        // Cache new successful GET requests dynamically
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -58,14 +58,13 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Offline fallback for navigation requests
+        // Offline fallback for navigation (HTML) requests
         if (event.request.mode === 'navigate') {
-          return caches.match('index.html');
+          return caches.match('./index.html') || caches.match('index.html');
         }
         return new Response('Offline content unavailable', {
           status: 503,
-          statusText: 'Service Unavailable',
-          headers: new Headers({ 'Content-Type': 'text/plain' })
+          statusText: 'Service Unavailable'
         });
       });
     })

@@ -82,19 +82,17 @@
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
-      // Simplified registration to ensure origin matching in sandboxed environments
+      // Service Worker registration refined for reliability
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Using a strictly relative path without leading dots or slashes
-          // helps resolve against the current origin regardless of deployment subdomain.
-          navigator.serviceWorker.register('sw.js')
+          // Use a simple relative path to avoid URL constructor issues in some environments
+          navigator.serviceWorker.register('sw.js', { scope: './' })
             .then(registration => {
-              console.log('SW Registered. Scope:', registration.scope);
+              console.log('SW Registered successfully with scope:', registration.scope);
             })
             .catch(error => {
-              // Gracefully handle origin mismatch or security errors in preview environments
               if (error.name === 'SecurityError') {
-                console.warn('Service Worker registration blocked by security policy. This is common in some sandboxed preview environments.');
+                console.warn('Sandboxed origin detected. SW registration restricted.');
               } else {
                 console.error('SW Registration failed:', error);
               }
