@@ -82,22 +82,24 @@
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
-      // Service Worker registration refined for reliability
+      // Immediate Service Worker registration for better PWA Auditor detection
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Use a simple relative path to avoid URL constructor issues in some environments
-          navigator.serviceWorker.register('sw.js', { scope: './' })
-            .then(registration => {
-              console.log('SW Registered successfully with scope:', registration.scope);
-            })
-            .catch(error => {
-              if (error.name === 'SecurityError') {
-                console.warn('Sandboxed origin detected. SW registration restricted.');
-              } else {
-                console.error('SW Registration failed:', error);
-              }
-            });
-        });
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then(registration => {
+            console.log('SW Registered successfully with scope:', registration.scope);
+            // Refresh logic if new SW is found
+            registration.onupdatefound = () => {
+              const installingWorker = registration.installing;
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New content is available; please refresh.');
+                }
+              };
+            };
+          })
+          .catch(error => {
+            console.error('Service Worker registration failed:', error);
+          });
       }
     </script>
   </body>

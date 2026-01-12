@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'apple-harvest-v16';
+const CACHE_NAME = 'apple-harvest-v17';
 const ASSETS_TO_CACHE = [
   './',
   'index.html',
@@ -11,20 +11,17 @@ const ASSETS_TO_CACHE = [
   'https://i.postimg.cc/rFjWN5Jg/Green-Apple.jpg'
 ];
 
-// Install Event: Cache essential assets
+// Install: Cache core assets and activate immediately
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Pre-caching offline assets');
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
-        console.warn('[Service Worker] Pre-cache failed for some assets:', err);
-      });
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
+  self.skipWaiting();
 });
 
-// Activate Event: Cleanup old caches
+// Activate: Purge old versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keyList) => {
@@ -38,34 +35,40 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch Event: Cache-First with Network Fallback
+// Fetch: Network-First for HTML, Cache-First for static assets
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Handle navigation requests (index.html)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match('./index.html') || caches.match('index.html');
+        })
+    );
+    return;
+  }
+
+  // Handle static assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-
       return fetch(event.request).then((networkResponse) => {
-        // Cache new successful GET requests dynamically
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        // Don't cache streaming content or cross-origin POSTs
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
         }
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
         return networkResponse;
       }).catch(() => {
-        // Offline fallback for navigation (HTML) requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html') || caches.match('index.html');
-        }
-        return new Response('Offline content unavailable', {
-          status: 503,
-          statusText: 'Service Unavailable'
-        });
+        // General fallback
+        return new Response('Offline content unavailable', { status: 503 });
       });
     })
   );
