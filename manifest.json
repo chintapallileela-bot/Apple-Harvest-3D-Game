@@ -1,6 +1,6 @@
 
 {
-  "id": "com.appleharvest.challenge.v12",
+  "id": "com.appleharvest.challenge.v13",
   "name": "Apple Harvest Challenge",
   "short_name": "AppleHarvest",
   "description": "An immersive 3D harvest challenge. Pop 200 scattered apples to reveal stunning scenery themes. Features high-quality graphics and a dedicated reveal phase.",
@@ -10,11 +10,10 @@
   "display_override": ["window-controls-overlay", "minimal-ui"],
   "background_color": "#0c0a09",
   "theme_color": "#ef4444",
-  "orientation": "any",
+  "orientation": "portrait",
   "dir": "ltr",
   "lang": "en-US",
   "categories": ["games", "entertainment", "nature", "lifestyle"],
-  "iarc_rating_id": "e726477e-70a1-4084-5a3e-7ae7780df969",
   "prefer_related_applications": false,
   "related_applications": [],
   "icons": [
@@ -28,7 +27,13 @@
       "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.postimg.cc/P5Gqt83s/Red-Apple-Icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -52,35 +57,31 @@
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Main Menu"
-    },
-    {
-      "src": "https://i.postimg.cc/hP4bqsPv/p2.png",
-      "sizes": "720x1280",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Theme Selection"
+      "label": "Main Menu - Start your harvest journey"
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Gameplay"
+      "label": "Harvest Mode - Tap to collect apples"
     },
     {
       "src": "https://i.postimg.cc/gcVNpry9/p1.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Desktop Home View"
+      "label": "Desktop Experience"
     },
     {
       "src": "https://i.postimg.cc/2jGhTWdg/p3.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Desktop Game View"
+      "label": "Immersive 3D Scenery"
     }
-  ]
+  ],
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  }
 }
